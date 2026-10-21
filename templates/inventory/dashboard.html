@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}Tableau de bord — Quincaillerie{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <h4><i class="bi bi-tools"></i> {{ site.nom }}</h4>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'inventory:historique' %}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-clock-history"></i> Historique des ventes
+        </a>
+        <a href="{% url 'inventory:categorie_ajouter' %}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-tag"></i> Catégories
+        </a>
+        <a href="{% url 'inventory:nouvelle_vente' %}" class="btn btn-sm btn-success">
+            <i class="bi bi-cart-check"></i> Nouvelle vente
+        </a>
+        <a href="{% url 'inventory:produit_ajouter' %}" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus-lg"></i> Ajouter un produit
+        </a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card-stat d-flex align-items-center gap-3">
+            <div class="icon"><i class="bi bi-box-seam"></i></div>
+            <div>
+                <div class="value">{{ valeur_stock }}</div>
+                <div class="label">Valeur totale du stock</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card-stat d-flex align-items-center gap-3">
+            <div class="icon" style="background:rgba(198,40,40,.1); color:#c62828;"><i class="bi bi-exclamation-triangle"></i></div>
+            <div>
+                <div class="value">{{ nb_alertes }}</div>
+                <div class="label">Articles en alerte</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card-stat d-flex align-items-center gap-3">
+            <div class="icon"><i class="bi bi-grid"></i></div>
+            <div>
+                <div class="value">{{ nombre_produits }}</div>
+                <div class="label">Produits au total</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="dashboard-insights mb-4">
+    <div class="insights-heading">
+        <div>
+            <span class="section-eyebrow">Vue d’ensemble</span>
+            <h5 class="mb-1"><i class="bi bi-graph-up-arrow"></i> Activité du stock</h5>
+            <p class="text-muted mb-0 small">Mouvements et ventes sur la période sélectionnée</p>
+        </div>
+        <form method="get" class="insights-filter">
+            {% if categorie_active %}<input type="hidden" name="categorie" value="{{ categorie_active }}">{% endif %}
+            {% if recherche %}<input type="hidden" name="q" value="{{ recherche }}">{% endif %}
+            <label class="visually-hidden" for="stockStart">Du</label>
+            <input id="stockStart" type="date" name="debut" value="{{ debut_stats }}" class="form-control form-control-sm">
+            <span class="filter-separator">au</span>
+            <label class="visually-hidden" for="stockEnd">Au</label>
+            <input id="stockEnd" type="date" name="fin" value="{{ fin_stats }}" class="form-control form-control-sm">
+            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel"></i> Filtrer</button>
+        </form>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-sm-4">
+            <div class="insight-stat">
+                <span class="insight-stat-icon sales"><i class="bi bi-receipt-cutoff"></i></span>
+                <div><span class="insight-stat-label">Articles vendus</span><strong>{{ stats_mouvements.ventes|default:0 }}</strong></div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-4">
+            <div class="insight-stat">
+                <span class="insight-stat-icon revenue"><i class="bi bi-cash-stack"></i></span>
+                <div><span class="insight-stat-label">Chiffre d’affaires</span><strong>{{ stats_mouvements.chiffre_affaires|default:0 }}</strong></div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-4">
+            <div class="insight-stat">
+                <span class="insight-stat-icon entries"><i class="bi bi-box-arrow-in-down"></i></span>
+                <div><span class="insight-stat-label">Unités entrées</span><strong>{{ stats_mouvements.entrees|default:0 }}</strong></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-12 col-xl-5">
+            <article class="chart-card h-100">
+                <div class="chart-heading">
+                    <div><h6>Répartition du stock</h6><p>Quantités par catégorie</p></div>
+                    <span class="chart-heading-icon"><i class="bi bi-pie-chart"></i></span>
+                </div>
+                {% if stock_par_categorie %}
+                    <div class="chart-canvas chart-canvas-doughnut"><canvas id="stockCategoryChart" aria-label="Répartition des quantités en stock par catégorie" role="img"></canvas></div>
+                {% else %}
+                    <div class="chart-empty"><i class="bi bi-pie-chart"></i><span>Aucune donnée de stock à afficher.</span></div>
+                {% endif %}
+            </article>
+        </div>
+        <div class="col-12 col-xl-7">
+            <article class="chart-card h-100">
+                <div class="chart-heading">
+                    <div><h6>Évolution des mouvements</h6><p>Nombre d’opérations par jour</p></div>
+                    <span class="chart-heading-icon"><i class="bi bi-bar-chart"></i></span>
+                </div>
+                {% if labels_mouvements %}
+                    <div class="chart-canvas"><canvas id="stockActivityChart" aria-label="Mouvements quotidiens de stock" role="img"></canvas></div>
+                {% else %}
+                    <div class="chart-empty"><i class="bi bi-bar-chart"></i><span>Aucun mouvement pour cette période.</span></div>
+                {% endif %}
+            </article>
+        </div>
+    </div>
+</section>
+
+<div class="dashboard-shortcuts">
+    <a class="dashboard-shortcut" href="{% url 'inventory:produits' %}">
+        <span class="dashboard-shortcut-icon"><i class="bi bi-box-seam"></i></span>
+        <span>
+            <strong>Consulter les produits</strong>
+            <small>Rechercher, filtrer et gérer le catalogue</small>
+        </span>
+        <i class="bi bi-arrow-right-short dashboard-shortcut-arrow"></i>
+    </a>
+    <a class="dashboard-shortcut" href="{% url 'reports:rapport_stock' %}">
+        <span class="dashboard-shortcut-icon report"><i class="bi bi-printer"></i></span>
+        <span>
+            <strong>Créer un rapport</strong>
+            <small>Choisir les données et imprimer un état de stock</small>
+        </span>
+        <i class="bi bi-arrow-right-short dashboard-shortcut-arrow"></i>
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+{{ stock_par_categorie|json_script:"stock-category-data" }}
+{{ labels_mouvements|json_script:"stock-activity-labels" }}
+{{ ventes_par_jour|json_script:"stock-sales-data" }}
+{{ entrees_par_jour|json_script:"stock-entries-data" }}
+{{ ajustements_par_jour|json_script:"stock-adjustments-data" }}
+<script>
+const categoryCanvas = document.getElementById('stockCategoryChart');
+if (categoryCanvas && window.Chart) {
+    const categories = JSON.parse(document.getElementById('stock-category-data').textContent);
+    new Chart(categoryCanvas, {
+        type: 'doughnut',
+        data: {
+            labels: categories.map(item => item.label),
+            datasets: [{
+                data: categories.map(item => item.total),
+                backgroundColor: ['#176b45', '#f2b544', '#4588d5', '#e16c5b', '#8b6bc1', '#4baaa0', '#e58b40'],
+                borderColor: '#fff',
+                borderWidth: 3,
+                hoverOffset: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '64%',
+            plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 18 } } }
+        }
+    });
+}
+
+const activityCanvas = document.getElementById('stockActivityChart');
+if (activityCanvas && window.Chart) {
+    new Chart(activityCanvas, {
+        type: 'bar',
+        data: {
+            labels: JSON.parse(document.getElementById('stock-activity-labels').textContent),
+            datasets: [
+                { label: 'Ventes', data: JSON.parse(document.getElementById('stock-sales-data').textContent), backgroundColor: '#df6658', borderRadius: 6 },
+                { label: 'Entrées', data: JSON.parse(document.getElementById('stock-entries-data').textContent), backgroundColor: '#2d9b69', borderRadius: 6 },
+                { label: 'Ajustements', data: JSON.parse(document.getElementById('stock-adjustments-data').textContent), backgroundColor: '#e5ad38', borderRadius: 6 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+            plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 18 } } }
+        }
+    });
+}
+</script>
+{% endblock %}

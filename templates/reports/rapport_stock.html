@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}Rapports de stock — {{ site.nom }}{% endblock %}
+{% block content %}
+<div class="stock-report-page">
+    <header class="stock-report-hero">
+        <div>
+            <span class="section-eyebrow">Pilotage de la quincaillerie</span>
+            <h1>Rapports de stock</h1>
+            <p>Choisissez les données, affinez les résultats puis imprimez le rapport souhaité.</p>
+        </div>
+        <a href="{% url 'inventory:dashboard' %}" class="btn btn-stock-report-back">
+            <i class="bi bi-arrow-left"></i> Tableau de bord
+        </a>
+    </header>
+
+    <form method="get" class="stock-report-filter-card">
+        <div class="stock-report-filter-heading">
+            <span class="stock-report-filter-icon"><i class="bi bi-sliders"></i></span>
+            <div>
+                <h2>Personnaliser le rapport</h2>
+                <p>Sélectionnez un état du stock ou le journal des mouvements.</p>
+            </div>
+        </div>
+        <div class="row g-3 align-items-end">
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="reportType">Type de rapport</label>
+                <select class="form-select" id="reportType" name="rapport">
+                    <option value="stock" {% if type_rapport == "stock" %}selected{% endif %}>État du stock actuel</option>
+                    <option value="mouvements" {% if type_rapport == "mouvements" %}selected{% endif %}>Grand livre des mouvements</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="reportCategory">Catégorie</label>
+                <select class="form-select" id="reportCategory" name="categorie">
+                    <option value="">Toutes les catégories</option>
+                    {% for categorie in categories %}
+                        <option value="{{ categorie.id }}" {% if categorie_active == categorie.id|stringformat:"s" %}selected{% endif %}>{{ categorie.nom }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="reportSearch">Produit ou référence</label>
+                <input class="form-control" id="reportSearch" type="search" name="q" value="{{ recherche }}" placeholder="Ex. marteau, REF-001">
+            </div>
+
+            <div class="col-12 col-sm-6 col-md-3">
+                <label class="form-label" for="reportStart">Date de début</label>
+                <input class="form-control" id="reportStart" type="date" name="debut" value="{{ debut|date:'Y-m-d' }}" {% if type_rapport == "stock" %}disabled{% endif %}>
+            </div>
+            <div class="col-12 col-sm-6 col-md-3">
+                <label class="form-label" for="reportEnd">Date de fin</label>
+                <input class="form-control" id="reportEnd" type="date" name="fin" value="{{ fin|date:'Y-m-d' }}" {% if type_rapport == "stock" %}disabled{% endif %}>
+            </div>
+            <div class="col-12 col-sm-6 col-md-3">
+                <label class="form-label" for="reportMovementType">Type de mouvement</label>
+                <select class="form-select" id="reportMovementType" name="type_mouvement" {% if type_rapport == "stock" %}disabled{% endif %}>
+                    <option value="">Tous les mouvements</option>
+                    <option value="entree" {% if type_mouvement == "entree" %}selected{% endif %}>Entrées</option>
+                    <option value="sortie" {% if type_mouvement == "sortie" %}selected{% endif %}>Ventes / sorties</option>
+                    <option value="ajustement" {% if type_mouvement == "ajustement" %}selected{% endif %}>Ajustements</option>
+                </select>
+            </div>
+            <div class="col-12 col-sm-6 col-md-3">
+                <label class="form-label" for="reportRows">Lignes par page</label>
+                <select class="form-select" id="reportRows" name="par_page">
+                    <option value="12" {% if page_size == "12" %}selected{% endif %}>12</option>
+                    <option value="15" {% if page_size == "15" %}selected{% endif %}>15</option>
+                    <option value="30" {% if page_size == "30" %}selected{% endif %}>30</option>
+                </select>
+            </div>
+            <div class="col-12">
+                <label class="stock-report-alert-filter">
+                    <input type="checkbox" name="alerte" value="1" {% if alerte_seulement %}checked{% endif %} {% if type_rapport != "stock" %}disabled{% endif %}>
+                    <span class="stock-report-alert-check"><i class="bi bi-check"></i></span>
+                    <span>Afficher uniquement les produits sous le seuil d’alerte</span>
+                </label>
+            </div>
+            <div class="col-12 d-flex flex-wrap gap-2 justify-content-end">
+                <a href="{% url 'reports:rapport_stock' %}" class="btn btn-light">Réinitialiser</a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-funnel"></i> Afficher le rapport</button>
+            </div>
+        </div>
+    </form>
+
+    <section class="stock-report-results">
+        <div class="stock-report-results-heading">
+            <div>
+                <span class="section-eyebrow">Aperçu des résultats</span>
+                <h2>{% if type_rapport == "stock" %}État du stock actuel{% else %}Grand livre des mouvements{% endif %}</h2>
+                <p>{{ nombre_resultats }} ligne{{ nombre_resultats|pluralize:"s" }} · {{ site.nom }}</p>
+            </div>
+            <div class="stock-report-actions">
+                <a href="{% url 'reports:rapport_stock_pdf' %}?{{ querystring }}" target="_blank" rel="noopener" class="btn btn-stock-print">
+                    <i class="bi bi-printer"></i> Imprimer
+                </a>
+                <a href="{% url 'reports:rapport_stock_pdf' %}?{{ querystring }}{% if querystring %}&{% endif %}download=1" class="btn btn-stock-download">
+                    <i class="bi bi-file-earmark-arrow-down"></i> Télécharger le PDF
+                </a>
+            </div>
+        </div>
+
+        <div class="stock-report-summary">
+            <div>
+                <span><i class="bi bi-list-check"></i> {% if type_rapport == "stock" %}Produits sélectionnés{% else %}Mouvements sélectionnés{% endif %}</span>
+                <strong>{{ nombre_resultats }}</strong>
+            </div>
+            <div>
+                <span><i class="bi bi-box-seam"></i> {% if type_rapport == "stock" %}Quantité en stock{% else %}Quantités cumulées{% endif %}</span>
+                <strong>{{ totaux.quantite }}</strong>
+            </div>
+            <div>
+                <span><i class="bi bi-cash-stack"></i> {% if type_rapport == "stock" %}Valeur d’achat du stock{% else %}Valeur cumulée des mouvements{% endif %}</span>
+                <strong>{{ totaux.valeur }}</strong>
+            </div>
+            {% if type_rapport == "stock" %}
+            <div>
+                <span><i class="bi bi-exclamation-triangle"></i> Sous le seuil d’alerte</span>
+                <strong>{{ nombre_alertes }}</strong>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="table-responsive stock-report-table-wrap">
+            <table class="table stock-report-table align-middle mb-0">
+                {% if type_rapport == "stock" %}
+                    <thead><tr><th>Produit</th><th>Référence</th><th>Catégorie</th><th>Stock</th><th>Seuil</th><th>Prix d’achat</th><th>Prix de vente</th><th>Valeur du stock</th></tr></thead>
+                    <tbody>
+                    {% for produit in resultats %}
+                        <tr>
+                            <td class="fw-semibold">{{ produit.nom }}</td>
+                            <td>{{ produit.reference|default:"—" }}</td>
+                            <td>{{ produit.categorie.nom }}</td>
+                            <td>{{ produit.quantite_stock }}</td>
+                            <td>{{ produit.seuil_alerte }}</td>
+                            <td>{{ produit.prix_achat }}</td>
+                            <td>{{ produit.prix_vente }}</td>
+                            <td>{{ produit.valeur_stock }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="8"><div class="stock-report-empty"><i class="bi bi-inbox"></i>Aucun produit ne correspond à ces critères.</div></td></tr>
+                    {% endfor %}
+                    </tbody>
+                {% else %}
+                    <thead><tr><th>Date</th><th>Produit</th><th>Catégorie</th><th>Type</th><th>Quantité</th><th>Prix unitaire</th><th>Valeur</th><th>Agent</th></tr></thead>
+                    <tbody>
+                    {% for mouvement in resultats %}
+                        <tr>
+                            <td>{{ mouvement.date_mouvement|date:"d/m/Y H:i" }}</td>
+                            <td class="fw-semibold">{{ mouvement.produit.nom }}</td>
+                            <td>{{ mouvement.produit.categorie.nom }}</td>
+                            <td>{{ mouvement.get_type_mouvement_display }}</td>
+                            <td>{{ mouvement.quantite }}</td>
+                            <td>{{ mouvement.prix_unitaire }}</td>
+                            <td>{{ mouvement.total }}</td>
+                            <td>{{ mouvement.utilisateur.username|default:"—" }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="8"><div class="stock-report-empty"><i class="bi bi-inbox"></i>Aucun mouvement ne correspond à ces critères.</div></td></tr>
+                    {% endfor %}
+                    </tbody>
+                {% endif %}
+            </table>
+        </div>
+        {% include "partials/pagination.html" with pagination_label="lignes" %}
+        <p class="stock-report-print-hint"><i class="bi bi-info-circle"></i> Le PDF contient toutes les lignes filtrées, même si l’aperçu est paginé.</p>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const reportType = document.getElementById("reportType");
+reportType.addEventListener("change", function () {
+    const isStockReport = this.value === "stock";
+    document.getElementById("reportStart").disabled = isStockReport;
+    document.getElementById("reportEnd").disabled = isStockReport;
+    document.getElementById("reportMovementType").disabled = isStockReport;
+    document.querySelector(".stock-report-alert-filter input").disabled = !isStockReport;
+});
+</script>
+{% endblock %}

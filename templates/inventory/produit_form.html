@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == "ajouter" %}Ajouter un produit{% else %}Modifier un produit{% endif %}{% endblock %}
+{% block content %}
+<div class="product-form-page">
+    <header class="product-form-hero">
+        <div>
+            <span class="section-eyebrow">Catalogue produits</span>
+            <h1>
+                {% if mode == "ajouter" %}
+                    Ajouter un produit
+                {% else %}
+                    Modifier le produit
+                {% endif %}
+            </h1>
+            <p>
+                {% if mode == "ajouter" %}
+                    Renseignez les informations du produit et son stock initial.
+                {% else %}
+                    Mettez à jour les informations de « {{ produit.nom }} ».
+                {% endif %}
+            </p>
+        </div>
+        <a href="{% url 'inventory:produits' %}" class="btn btn-product-back">
+            <i class="bi bi-arrow-left"></i> Retour aux produits
+        </a>
+        <i class="bi bi-box-seam product-form-decoration" aria-hidden="true"></i>
+    </header>
+
+    <div class="product-form-layout">
+        <section class="product-form-card">
+            <div class="product-form-card-heading">
+                <span class="product-form-heading-icon"><i class="bi bi-clipboard2-plus"></i></span>
+                <div>
+                    <h2>{% if mode == "ajouter" %}Informations du produit{% else %}Détails du produit{% endif %}</h2>
+                    <p>Les champs marqués d’un astérisque sont obligatoires.</p>
+                </div>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <div class="product-form-section-label">
+                    <i class="bi bi-tag"></i> Identification
+                </div>
+                <div class="row g-3">
+                    {% for field in form %}
+                        {% if field.name == "categorie" or field.name == "nom" or field.name == "reference" %}
+                        <div class="{% if field.name == 'categorie' %}col-12 col-md-6{% else %}col-12 col-md-6{% endif %}">
+                            <label class="form-label product-field-label" for="{{ field.id_for_label }}">
+                                {{ field.label }}{% if field.field.required %}<span class="required-mark"> *</span>{% endif %}
+                            </label>
+                            {{ field }}
+                            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                            {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                <div class="product-form-section-label mt-4">
+                    <i class="bi bi-cash-coin"></i> Prix et disponibilité
+                </div>
+                <div class="row g-3">
+                    {% for field in form %}
+                        {% if field.name == "prix_achat" or field.name == "prix_vente" or field.name == "quantite_stock" or field.name == "seuil_alerte" %}
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label product-field-label" for="{{ field.id_for_label }}">
+                                {{ field.label }}{% if field.field.required %}<span class="required-mark"> *</span>{% endif %}
+                            </label>
+                            <div class="input-group product-input-group">
+                                {{ field }}
+                                {% if field.name == "quantite_stock" or field.name == "seuil_alerte" %}
+                                    <span class="input-group-text">unités</span>
+                                {% elif field.name == "prix_achat" or field.name == "prix_vente" %}
+                                    <span class="input-group-text">/ unité</span>
+                                {% endif %}
+                            </div>
+                            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                            {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                {% if mode == "ajouter" %}
+                    <div class="product-stock-note">
+                        <i class="bi bi-info-circle"></i>
+                        <span>Le stock saisi sera enregistré comme stock initial et ajouté au journal des mouvements.</span>
+                    </div>
+                {% endif %}
+
+                <div class="product-form-actions">
+                    <a href="{% url 'inventory:produits' %}" class="btn btn-light">Annuler</a>
+                    {% if mode == "modifier" %}
+                        <a href="{% url 'inventory:produit_supprimer' produit.id %}" class="btn btn-outline-danger">
+                            <i class="bi bi-trash"></i><span class="d-none d-sm-inline"> Supprimer</span>
+                        </a>
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary product-form-submit">
+                        <i class="bi {% if mode == 'ajouter' %}bi-plus-lg{% else %}bi-check-lg{% endif %}"></i>
+                        {% if mode == "ajouter" %}Ajouter le produit{% else %}Enregistrer les modifications{% endif %}
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <aside class="product-form-aside">
+            <div class="product-aside-card product-aside-highlight">
+                <span class="product-aside-icon"><i class="bi bi-lightbulb"></i></span>
+                <h2>Un catalogue bien organisé</h2>
+                <p>Choisissez une catégorie claire et une référence facile à retrouver pour simplifier le suivi du stock.</p>
+            </div>
+            <div class="product-aside-card">
+                <h3><i class="bi bi-shield-check"></i> Conseils de saisie</h3>
+                <ul>
+                    <li>Le prix de vente doit être égal ou supérieur au prix d’achat.</li>
+                    <li>Le seuil d’alerte signale les articles à réapprovisionner.</li>
+                    <li>Une référence cohérente facilite la recherche rapide d’un article.</li>
+                </ul>
+                <a href="{% url 'inventory:categorie_ajouter' %}" class="product-category-link">
+                    <i class="bi bi-tags"></i> Gérer les catégories
+                </a>
+            </div>
+        </aside>
+    </div>
+</div>
+{% endblock %}

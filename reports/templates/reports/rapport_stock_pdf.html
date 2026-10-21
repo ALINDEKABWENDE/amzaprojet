@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+    @page {
+        size: A4 landscape;
+        margin: 3.1cm 1.35cm 2.1cm;
+        @top-center { content: element(company-header); vertical-align: bottom; }
+        @bottom-center { content: element(company-footer); vertical-align: top; }
+        @bottom-right { content: "Page " counter(page) " / " counter(pages); font-size: 9px; color: #666; vertical-align: top; }
+    }
+    body { font-family: 'Helvetica', sans-serif; font-size: 10px; color: #26352c; }
+    .company-header-running { position: running(company-header); }
+    .company-footer-running { position: running(company-footer); border-top: 1px solid #dce6de; padding-top: 6px; color: #666; font-size: 9px; }
+    .report-meta { margin: 8px 0 12px; color: #5a6d63; line-height: 1.55; }
+    .summary { display: table; width: 100%; margin: 12px 0; border-spacing: 6px 0; }
+    .summary-item { display: table-cell; width: 25%; padding: 8px 10px; border: 1px solid #dce8df; background: #f4f8f4; }
+    .summary-item span { display: block; color: #5a6d63; font-size: 8px; text-transform: uppercase; }
+    .summary-item strong { display: block; margin-top: 4px; color: #155635; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th { background: #1f6f46; color: #fff; padding: 7px 6px; text-align: left; font-size: 8px; }
+    td { padding: 6px; border-bottom: 1px solid #e7ede8; vertical-align: top; }
+    tbody tr:nth-child(even) { background: #f8faf8; }
+    .status-low { color: #b7463e; font-weight: bold; }
+    .status-ok { color: #24764d; }
+</style>
+</head>
+<body>
+    {% include "reports/partials/entete_entreprise.html" with entete_document=entete_document reference_document=reference_document date_document=date_generation %}
+    {% include "reports/partials/pied_entreprise.html" %}
+    <div class="report-meta">
+        {% if type_rapport == "stock" %}
+            État du stock actuel
+            {% if categorie_active %} · Catégorie : {% for categorie in categories %}{% if categorie.id|stringformat:"s" == categorie_active %}{{ categorie.nom }}{% endif %}{% endfor %}{% endif %}
+            {% if alerte_seulement %} · Produits en alerte uniquement{% endif %}
+        {% else %}
+            Grand livre des mouvements
+            {% if debut %} · Du {{ debut|date:"d/m/Y" }}{% endif %}
+            {% if fin %} · Au {{ fin|date:"d/m/Y" }}{% endif %}
+            {% if type_mouvement %} · Type : {{ type_mouvement }}{% endif %}
+        {% endif %}
+        {% if recherche %} · Recherche : {{ recherche }}{% endif %}
+        <br>Généré le {{ date_generation|date:"d/m/Y à H:i" }}
+    </div>
+
+    <div class="summary">
+        <div class="summary-item">
+            <span>{% if type_rapport == "stock" %}Produits{% else %}Mouvements{% endif %} sélectionnés</span>
+            <strong>{{ nombre_resultats }}</strong>
+        </div>
+        <div class="summary-item"><span>{% if type_rapport == "stock" %}Quantité en stock{% else %}Quantités cumulées{% endif %}</span><strong>{{ totaux.quantite }}</strong></div>
+        <div class="summary-item">
+            <span>{% if type_rapport == "stock" %}Valeur d’achat du stock{% else %}Valeur cumulée des mouvements{% endif %}</span>
+            <strong>{{ totaux.valeur }}</strong>
+        </div>
+        {% if type_rapport == "stock" %}
+        <div class="summary-item"><span>Produits en alerte</span><strong>{{ nombre_alertes }}</strong></div>
+        {% endif %}
+    </div>
+
+    <table>
+        {% if type_rapport == "stock" %}
+            <thead><tr><th>Produit</th><th>Référence</th><th>Catégorie</th><th>Stock</th><th>Seuil</th><th>Prix d’achat</th><th>Prix de vente</th><th>Valeur du stock</th><th>État</th></tr></thead>
+            <tbody>
+            {% for produit in resultats %}
+                <tr>
+                    <td>{{ produit.nom }}</td><td>{{ produit.reference|default:"—" }}</td><td>{{ produit.categorie.nom }}</td>
+                    <td>{{ produit.quantite_stock }}</td><td>{{ produit.seuil_alerte }}</td>
+                    <td>{{ produit.prix_achat }}</td><td>{{ produit.prix_vente }}</td><td>{{ produit.valeur_stock }}</td>
+                    <td class="{% if produit.en_alerte %}status-low{% else %}status-ok{% endif %}">{% if produit.en_alerte %}À réapprovisionner{% else %}Disponible{% endif %}</td>
+                </tr>
+            {% empty %}<tr><td colspan="9">Aucun produit ne correspond aux filtres sélectionnés.</td></tr>{% endfor %}
+            </tbody>
+        {% else %}
+            <thead><tr><th>Date</th><th>Produit</th><th>Catégorie</th><th>Type</th><th>Quantité</th><th>Prix unitaire</th><th>Valeur</th><th>Agent</th><th>Note</th></tr></thead>
+            <tbody>
+            {% for mouvement in resultats %}
+                <tr>
+                    <td>{{ mouvement.date_mouvement|date:"d/m/Y H:i" }}</td><td>{{ mouvement.produit.nom }}</td>
+                    <td>{{ mouvement.produit.categorie.nom }}</td><td>{{ mouvement.get_type_mouvement_display }}</td>
+                    <td>{{ mouvement.quantite }}</td><td>{{ mouvement.prix_unitaire }}</td><td>{{ mouvement.total }}</td>
+                    <td>{{ mouvement.utilisateur.username|default:"—" }}</td><td>{{ mouvement.note|default:"—" }}</td>
+                </tr>
+            {% empty %}<tr><td colspan="9">Aucun mouvement ne correspond aux filtres sélectionnés.</td></tr>{% endfor %}
+            </tbody>
+        {% endif %}
+    </table>
+</body>
+</html>

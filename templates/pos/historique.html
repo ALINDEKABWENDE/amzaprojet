@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Historique des transactions — Shop{% endblock %}
+{% block content %}
+
+<div class="page-header history-page-header">
+    <div>
+        <span class="section-eyebrow">Suivi de l’activité</span>
+        <h4><i class="bi bi-clock-history"></i> Historique des transactions</h4>
+        <p class="text-muted mb-0 mt-1">Consultez et filtrez toutes les opérations de votre shop.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'reports:livre_caisse_pdf' %}?{{ querystring }}" class="btn btn-sm btn-accent">
+            <i class="bi bi-file-earmark-pdf"></i> Rapport filtré (PDF)
+        </a>
+        <a href="{% url 'pos:dashboard' %}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Tableau de bord
+        </a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-12 col-sm-4">
+        <div class="insight-stat">
+            <span class="insight-stat-icon deposits"><i class="bi bi-arrow-down-circle"></i></span>
+            <div><span class="insight-stat-label">Total des dépôts filtrés</span><strong>{{ totaux_par_devise.USD.depot|default:0|floatformat:2 }} USD</strong><br><strong>{{ totaux_par_devise.CDF.depot|default:0|floatformat:2 }} CDF</strong></div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-4">
+        <div class="insight-stat">
+            <span class="insight-stat-icon withdrawals"><i class="bi bi-arrow-up-circle"></i></span>
+            <div><span class="insight-stat-label">Total des retraits filtrés</span><strong>{{ totaux_par_devise.USD.retrait|default:0|floatformat:2 }} USD</strong><br><strong>{{ totaux_par_devise.CDF.retrait|default:0|floatformat:2 }} CDF</strong></div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-4">
+        <div class="insight-stat">
+            <span class="insight-stat-icon count"><i class="bi bi-receipt"></i></span>
+            <div><span class="insight-stat-label">Transactions trouvées</span><strong>{{ page_obj.paginator.count }}</strong></div>
+        </div>
+    </div>
+</div>
+
+<form method="get" class="filter-bar history-filter mb-3">
+    <div class="filter-heading">
+        <div>
+            <span class="section-eyebrow">Affiner les résultats</span>
+            <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtres</h5>
+        </div>
+        {% if filtres.type or filtres.operateur or filtres.devise or filtres.debut or filtres.fin or filtres.q %}
+        <a href="{% url 'pos:historique' %}" class="btn btn-sm btn-light"><i class="bi bi-x-circle"></i> Effacer les filtres</a>
+        {% endif %}
+    </div>
+    <div class="row g-2 align-items-end">
+        <div class="col-md-2">
+            <label class="form-label small text-muted mb-1">Type</label>
+            <select name="type" class="form-select form-select-sm">
+                <option value="">Tous</option>
+                <option value="depot" {% if filtres.type == "depot" %}selected{% endif %}>Dépôt</option>
+                <option value="retrait" {% if filtres.type == "retrait" %}selected{% endif %}>Retrait</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small text-muted mb-1">Opérateur</label>
+            <select name="operateur" class="form-select form-select-sm">
+                <option value="">Tous</option>
+                {% for groupe, options in operateur_choices %}
+                <optgroup label="{{ groupe }}">
+                    {% for value, label in options %}
+                    <option value="{{ value }}" {% if filtres.operateur == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </optgroup>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small text-muted mb-1">Devise</label>
+            <select name="devise" class="form-select form-select-sm">
+                <option value="">Toutes</option>
+                {% for value, label in devise_choices %}
+                <option value="{{ value }}" {% if filtres.devise == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small text-muted mb-1">Du</label>
+            <input type="date" name="debut" value="{{ filtres.debut }}" class="form-control form-control-sm">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small text-muted mb-1">Au</label>
+            <input type="date" name="fin" value="{{ filtres.fin }}" class="form-control form-control-sm">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small text-muted mb-1">Client / téléphone</label>
+            <input type="text" name="q" value="{{ filtres.q }}" class="form-control form-control-sm" placeholder="Rechercher...">
+        </div>
+        <div class="col-12 col-md-1 d-grid">
+            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-search"></i> <span class="d-md-none">Appliquer</span></button>
+        </div>
+    </div>
+</form>
+
+<div class="history-table-heading">
+    <div>
+        <h5><i class="bi bi-list-ul"></i> Résultats</h5>
+        <span>{{ page_obj.paginator.count }} transaction{{ page_obj.paginator.count|pluralize:"s" }} correspond{{ page_obj.paginator.count|pluralize:"ent" }} aux filtres</span>
+    </div>
+    <span class="history-period"><i class="bi bi-calendar3"></i> {% if filtres.debut or filtres.fin %}Période filtrée{% else %}Toutes les périodes{% endif %}</span>
+</div>
+
+<div class="table-responsive data-table">
+<table class="table table-hover mb-0 align-middle">
+    <thead><tr><th>Date</th><th>Type</th><th>Opérateur</th><th>Client</th><th>Téléphone</th><th>Montant</th><th>Devise</th><th>Frais</th><th>Agent</th><th></th></tr></thead>
+    <tbody>
+    {% for t in transactions %}
+        <tr>
+            <td>{{ t.date_transaction|date:"d/m/Y H:i" }}</td>
+            <td>
+                {% if t.type_transaction == "depot" %}
+                    <span class="badge bg-success">Dépôt</span>
+                {% else %}
+                    <span class="badge bg-danger">Retrait</span>
+                {% endif %}
+            </td>
+            <td><span class="badge-operateur {{ t.operateur_categorie }}">{{ t.operateur_affiche }}</span></td>
+            <td>{{ t.client_nom }}</td>
+            <td>{{ t.client_telephone }}</td>
+            <td>{{ t.montant|floatformat:2 }}</td>
+            <td>{{ t.devise }}</td>
+            <td>{{ t.frais|floatformat:2 }}</td>
+            <td>{{ t.agent.username|default:"—" }}</td>
+            <td class="d-flex gap-1">
+                <a href="{% url 'reports:ticket_pdf' t.id %}" class="btn btn-sm btn-outline-secondary" title="Ticket PDF"><i class="bi bi-printer"></i></a>
+                <a href="{% url 'pos:transaction_modifier' t.id %}" class="btn btn-sm btn-outline-secondary" title="Modifier"><i class="bi bi-pencil"></i></a>
+            </td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="10">
+            <div class="empty-state">
+                <i class="bi bi-inbox"></i>
+                Aucune transaction ne correspond à ces filtres.
+            </div>
+        </td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+
+{% include "partials/pagination.html" with pagination_label="transactions" show_single_page_pagination=True %}
+{% endblock %}

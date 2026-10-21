@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Choisir votre activité{% endblock %}
+{% block content %}
+<div class="text-center mb-4 mt-4">
+    <h3>Quelle est votre activité ?</h3>
+    <p class="text-muted">Étape 2 sur 2 — Ce choix détermine votre tableau de bord</p>
+</div>
+<form method="post" id="formChoixProfil">
+    {% csrf_token %}
+    <div class="row justify-content-center g-4 mb-4">
+        <div class="col-md-4">
+            <label class="profile-choice-card d-block">
+                <input type="radio" name="profil" value="quincaillerie" class="d-none" required>
+                <i class="bi bi-tools"></i>
+                <h5 class="mt-3">Quincaillerie</h5>
+                <p class="text-muted mb-0">Gestion de stock par catégorie, multi-site</p>
+            </label>
+        </div>
+        <div class="col-md-4">
+            <label class="profile-choice-card d-block">
+                <input type="radio" name="profil" value="shop" class="d-none" required>
+                <i class="bi bi-cash-coin"></i>
+                <h5 class="mt-3">Shop Mobile Money</h5>
+                <p class="text-muted mb-0">Dépôts, retraits et gestion de caisse</p>
+            </label>
+        </div>
+    </div>
+
+    <div class="auth-card card p-4">
+        <div class="mb-3">
+            <label class="form-label">Nom de votre site *</label>
+            <input type="text" name="nom_site" class="form-control" placeholder="Ex : Quincaillerie du Marché" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Ville</label>
+            <input type="text" name="ville" class="form-control" placeholder="Ex : Kinshasa">
+        </div>
+        <button type="submit" class="btn btn-primary w-100 py-2">
+            Continuer <i class="bi bi-arrow-right"></i>
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.querySelectorAll('.profile-choice-card').forEach(function (card) {
+    card.addEventListener('click', function () {
+        document.querySelectorAll('.profile-choice-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        card.querySelector('input[type=radio]').checked = true;
+    });
+});
+</script>
+{% endblock %}

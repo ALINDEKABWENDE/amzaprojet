@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+    /* Format adapté aux imprimantes thermiques 80mm (POS) */
+    @page { size: 80mm auto; margin: 3mm; }
+    body { font-family: 'Courier New', monospace; font-size: 11px; width: 74mm; color: #000; }
+    .center { text-align: center; }
+    .line { border-top: 1px dashed #000; margin: 6px 0; }
+    .row { display: flex; justify-content: space-between; margin: 2px 0; }
+    .big { font-size: 14px; font-weight: bold; }
+    .title { font-size: 13px; font-weight: bold; }
+</style>
+</head>
+<body>
+    <div class="center title">{{ site.nom }}</div>
+    <div class="center">{{ site.get_type_site_display }}</div>
+    {% if site.adresse %}<div class="center">{{ site.adresse }}</div>{% endif %}
+    {% if site.ville %}<div class="center">{{ site.ville }}</div>{% endif %}
+    <div class="line"></div>
+    <div class="center title">{{ entete_document }} N° {{ reference_document }}</div>
+    <div class="center">{{ date_document|date:"d/m/Y H:i" }}</div>
+    <div class="line"></div>
+    <div class="center">{{ t.get_type_transaction_display|upper }}</div>
+    <div class="line"></div>
+
+    <div class="row"><span>Date</span><span>{{ t.date_transaction|date:"d/m/Y H:i" }}</span></div>
+    <div class="row"><span>Ref</span><span>#{{ t.id }}</span></div>
+    <div class="row"><span>Client</span><span>{{ t.client_nom }}</span></div>
+    <div class="row"><span>Tel</span><span>{{ t.client_telephone }}</span></div>
+    <div class="row"><span>Agent</span><span>{{ t.agent }}</span></div>
+
+    <div class="line"></div>
+    <div class="row big"><span>Montant</span><span>{{ t.montant }} {{ t.devise }}</span></div>
+    {% if t.frais %}<div class="row"><span>Frais</span><span>{{ t.frais }} {{ t.devise }}</span></div>{% endif %}
+    <div class="line"></div>
+
+    <div class="center">Merci de votre confiance</div>
+    <div class="center">{{ site.nom }}</div>
+    <div class="center">--------------------------</div>
+</body>
+</html>

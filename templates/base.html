@@ -1,0 +1,136 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Gestion Stock{% endblock %}</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="{% static 'css/style.css' %}?v=24" rel="stylesheet">
+{% block extra_head %}{% endblock %}
+</head>
+<body class="app-body{% if request.resolver_match.url_name == 'login' %} login-page{% elif request.resolver_match.url_name == 'inscription' %} register-page{% endif %}">
+<nav class="navbar navbar-expand-xl app-navbar mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="{% if user.is_authenticated %}{% url 'accounts:redirect' %}{% else %}{% url 'accounts:login' %}{% endif %}">
+            <span class="brand-mark"><i class="bi bi-shop"></i></span>
+            <span class="brand-copy">
+                <span>Gestion Stock</span>
+                <small>Votre activité, en un coup d’œil</small>
+            </span>
+        </a>
+        {% if user.is_authenticated %}
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#appNavigation"
+                aria-controls="appNavigation" aria-expanded="false" aria-label="Ouvrir le menu">
+            <i class="bi bi-list"></i>
+        </button>
+        <div class="collapse navbar-collapse" id="appNavigation">
+            <div class="navbar-nav app-nav-links">
+                {% if user.activite_active == "quincaillerie" %}
+                    <a href="{% url 'inventory:dashboard' %}" class="btn btn-sm btn-nav {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"><i class="bi bi-speedometer2"></i> Tableau de bord</a>
+                    <div class="nav-item dropdown">
+                        <button class="btn btn-sm btn-nav dropdown-toggle {% if request.resolver_match.namespace == 'inventory' and request.resolver_match.url_name != 'dashboard' or request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'rapport_stock' %}active{% endif %}"
+                                id="hardwareMenu" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-grid"></i> Gestion stock
+                        </button>
+                        <ul class="dropdown-menu hardware-nav-menu" aria-labelledby="hardwareMenu">
+                            <li><a href="{% url 'inventory:produits' %}" class="dropdown-item {% if request.resolver_match.namespace == 'inventory' and request.resolver_match.url_name == 'produits' %}active{% endif %}"><i class="bi bi-box-seam"></i> Produits</a></li>
+                            <li><a href="{% url 'inventory:nouvelle_vente' %}" class="dropdown-item {% if request.resolver_match.url_name == 'nouvelle_vente' %}active{% endif %}"><i class="bi bi-cart-check"></i> Nouvelle vente</a></li>
+                            <li><a href="{% url 'inventory:historique' %}" class="dropdown-item {% if request.resolver_match.url_name == 'historique' %}active{% endif %}"><i class="bi bi-clock-history"></i> Historique</a></li>
+                            <li><a href="{% url 'reports:rapport_stock' %}" class="dropdown-item {% if request.resolver_match.namespace == 'reports' and request.resolver_match.url_name == 'rapport_stock' %}active{% endif %}"><i class="bi bi-file-earmark-bar-graph"></i> Rapports</a></li>
+                        </ul>
+                    </div>
+                {% elif user.activite_active == "shop" %}
+                    <a href="{% url 'pos:dashboard' %}" class="btn btn-sm btn-nav {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"><i class="bi bi-speedometer2"></i> Tableau de bord</a>
+                    <a href="{% url 'pos:historique' %}" class="btn btn-sm btn-nav {% if request.resolver_match.url_name == 'historique' %}active{% endif %}"><i class="bi bi-clock-history"></i> Historique</a>
+                {% endif %}
+                {% if user.is_staff %}
+                    <a href="{% url 'core:administration' %}" class="btn btn-sm btn-nav {% if request.resolver_match.namespace == 'core' and request.resolver_match.url_name == 'administration' %}active{% endif %}">
+                        <i class="bi bi-shield-lock"></i> Administration
+                    </a>
+                {% endif %}
+            </div>
+            <div class="d-flex align-items-center gap-2 text-white user-bar">
+                {% if user.site_actif %}
+                    {% if user.is_staff %}
+                        <span class="btn btn-sm btn-site"><i class="bi bi-geo-alt"></i> {{ user.site_actif.nom }}</span>
+                    {% else %}
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-site dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-geo-alt"></i> {{ user.site_actif.nom }}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            {% for s in user.sites.all %}
+                            {% if s.actif %}
+                            <li>
+                                <a class="dropdown-item {% if s.id == user.site_actif.id %}active{% endif %}"
+                                   href="{% url 'core:changer_site' s.id %}">{{ s.nom }}</a>
+                            </li>
+                            {% endif %}
+                            {% empty %}
+                            <li><span class="dropdown-item-text text-muted">Aucun autre site</span></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                {% endif %}
+                <span class="badge user-badge">
+                    {% if user.is_staff and user.site_actif %}
+                        {{ user.site_actif.get_type_site_display }}
+                    {% else %}
+                        {{ user.get_profil_display }}
+                    {% endif %}
+                </span>
+                <form method="post" action="{% url 'accounts:logout' %}" class="m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-logout">
+                        <i class="bi bi-box-arrow-right"></i> Déconnexion
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <div class="d-flex align-items-center gap-2 ms-auto">
+            <a href="{% url 'accounts:login' %}" class="btn btn-sm btn-site">
+                <i class="bi bi-box-arrow-in-right"></i> Se connecter
+            </a>
+            <a href="{% url 'accounts:inscription' %}" class="btn btn-sm btn-public-signup">
+                <i class="bi bi-person-plus"></i> Créer un compte
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</nav>
+
+<div class="container app-shell pb-5">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+    {% block content %}{% endblock %}
+</div>
+
+<footer class="app-footer">
+    <div class="container app-footer-inner">
+        <a class="app-footer-brand" href="{% if user.is_authenticated %}{% url 'accounts:redirect' %}{% else %}{% url 'accounts:login' %}{% endif %}">
+            <span class="app-footer-mark"><i class="bi bi-shop"></i></span>
+            <span class="app-footer-brand-copy">
+                <strong>Gestion Stock</strong>
+                <small>Votre activité, simplement</small>
+            </span>
+        </a>
+        <span class="app-footer-note"><i class="bi bi-check-circle"></i> La gestion de votre activité, simplement.</span>
+        <span class="app-footer-credit"><span class="app-footer-credit-label">Conçu par</span> J.Alinde Kabwende</span>
+        <span class="app-footer-copy">&copy; {% now "Y" %} <span>Gestion Stock</span></span>
+    </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

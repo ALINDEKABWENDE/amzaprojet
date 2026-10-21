@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Connexion{% endblock %}
+{% block content %}
+<main class="login-layout">
+    <section class="login-welcome">
+        <a class="login-brand" href="{% url 'accounts:login' %}">
+            <span class="login-brand-mark"><i class="bi bi-shop"></i></span>
+            <span>Gestion Stock</span>
+        </a>
+        <div class="login-welcome-copy">
+            <span class="login-eyebrow">Votre activité, en un coup d’œil</span>
+            <h1>Gérez votre activité en toute simplicité.</h1>
+            <p>Retrouvez vos ventes, vos transactions et votre stock dans un espace conçu pour vous.</p>
+        </div>
+        <div class="login-feature-list">
+            <div><span class="login-feature-icon"><i class="bi bi-box-seam"></i></span><span>Suivi du stock et des ventes</span></div>
+            <div><span class="login-feature-icon"><i class="bi bi-cash-coin"></i></span><span>Gestion des transactions et de la caisse</span></div>
+            <div><span class="login-feature-icon"><i class="bi bi-graph-up-arrow"></i></span><span>Rapports clairs pour votre activité</span></div>
+        </div>
+        <span class="login-decoration login-decoration-one"></span>
+        <span class="login-decoration login-decoration-two"></span>
+    </section>
+
+    <section class="login-form-panel">
+        <div class="login-form-heading">
+            <span class="login-mobile-mark"><i class="bi bi-shop"></i></span>
+            <span class="login-eyebrow">Espace sécurisé</span>
+            <h2>Bienvenue</h2>
+            <p>Connectez-vous pour accéder à votre compte.</p>
+        </div>
+        <form method="post" class="login-form">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label" for="{{ form.username.id_for_label }}">Nom d'utilisateur</label>
+                <div class="login-input-wrap">
+                    <i class="bi bi-person"></i>
+                    {{ form.username }}
+                </div>
+                {% if form.username.errors %}<div class="login-field-error">{{ form.username.errors|first }}</div>{% endif %}
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="{{ form.password.id_for_label }}">Mot de passe</label>
+                <div class="login-input-wrap">
+                    <i class="bi bi-lock"></i>
+                    {{ form.password }}
+                    <button type="button" class="login-password-toggle" aria-label="Afficher le mot de passe" aria-pressed="false">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+                {% if form.password.errors %}<div class="login-field-error">{{ form.password.errors|first }}</div>{% endif %}
+            </div>
+            {% if form.non_field_errors or form.errors %}
+                <div class="alert alert-danger login-error" role="alert">
+                    <i class="bi bi-exclamation-circle"></i>
+                    Identifiants incorrects. Vérifiez votre nom d'utilisateur et votre mot de passe.
+                </div>
+            {% endif %}
+            <button type="submit" class="btn btn-primary login-submit">
+                Se connecter <i class="bi bi-arrow-right"></i>
+            </button>
+        </form>
+        <p class="login-register">Pas encore de compte ? <a href="{% url 'accounts:inscription' %}">Créer un compte <i class="bi bi-arrow-up-right"></i></a></p>
+        <div class="login-security-note"><i class="bi bi-shield-check"></i> Votre espace est protégé</div>
+    </section>
+</main>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const passwordField = document.querySelector('.login-input[type="password"]');
+const passwordToggle = document.querySelector('.login-password-toggle');
+if (passwordField && passwordToggle) {
+    passwordToggle.addEventListener('click', () => {
+        const showPassword = passwordField.type === 'password';
+        passwordField.type = showPassword ? 'text' : 'password';
+        passwordToggle.setAttribute('aria-pressed', String(showPassword));
+        passwordToggle.setAttribute('aria-label', showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+        passwordToggle.querySelector('i').className = `bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`;
+    });
+}
+</script>
+{% endblock %}

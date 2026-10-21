@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>Rapport administratif</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 3.1cm 1.25cm 2.1cm;
+            @top-center { content: element(admin-report-header); vertical-align: bottom; }
+            @bottom-center { content: element(admin-report-footer); vertical-align: top; }
+            @bottom-right {
+                content: "Page " counter(page) " / " counter(pages);
+                font-size: 9px;
+                color: #66756b;
+                vertical-align: top;
+            }
+        }
+        * { box-sizing: border-box; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 9px; color: #25372b; }
+        .admin-report-document-header {
+            position: running(admin-report-header);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: 100%;
+            padding: 0 0 8px;
+            border-bottom: 3px solid #2c5f2d;
+        }
+        .admin-report-document-brand { color: #2c5f2d; font-size: 20px; font-weight: bold; }
+        .admin-report-document-meta { color: #5f6e64; font-size: 9px; margin-top: 3px; }
+        .admin-report-document-title { color: #25372b; font-size: 12px; font-weight: bold; text-align: right; }
+        .admin-report-document-title small { display: block; color: #66756b; font-size: 9px; font-weight: normal; margin-top: 4px; }
+        .admin-report-document-footer {
+            position: running(admin-report-footer);
+            width: 100%;
+            border-top: 1px solid #dce6de;
+            padding-top: 6px;
+            color: #66756b;
+            font-size: 8px;
+        }
+        .admin-report-summary { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+        .admin-report-metric {
+            flex: 1 1 17%;
+            min-width: 125px;
+            border: 1px solid #dfe9e2;
+            border-radius: 7px;
+            background: #f5f9f6;
+            padding: 8px;
+        }
+        .admin-report-metric-label { display: block; color: #5f6e64; font-size: 8px; font-weight: bold; margin-bottom: 3px; }
+        .admin-report-metric-value { color: #173e2a; font-size: 12px; font-weight: bold; }
+        .admin-report-metric-note { color: #66756b; font-size: 7.5px; margin-top: 3px; }
+        .admin-report-table-wrap { width: 100%; }
+        .admin-report-table { width: 100%; border-collapse: collapse; }
+        .admin-report-table thead { display: table-header-group; }
+        .admin-report-table th {
+            background: #2c5f2d;
+            color: #fff;
+            padding: 6px 5px;
+            text-align: left;
+            font-size: 8px;
+        }
+        .admin-report-table td { padding: 5px; border-bottom: 1px solid #e6ece8; vertical-align: top; }
+        .admin-report-table tr { break-inside: avoid; }
+        .admin-report-site { color: #214a32; font-weight: bold; }
+        .admin-report-badge { color: #267447; font-weight: bold; }
+        .admin-report-empty { text-align: center; color: #66756b; padding: 15px !important; }
+    </style>
+</head>
+<body>
+    {% include "reports/administration_global_body.html" %}
+</body>
+</html>

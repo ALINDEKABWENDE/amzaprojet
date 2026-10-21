@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Produits — {{ site.nom }}{% endblock %}
+{% block content %}
+<div class="catalog-page">
+    <header class="catalog-hero">
+        <div>
+            <span class="section-eyebrow">Catalogue de la quincaillerie</span>
+            <h1>Vos produits</h1>
+            <p>Consultez les niveaux de stock, retrouvez un article et gérez ses informations.</p>
+        </div>
+        <div class="catalog-hero-actions">
+            <a href="{% url 'reports:rapport_stock' %}" class="btn btn-catalog-secondary">
+                <i class="bi bi-printer"></i> Rapports
+            </a>
+            <a href="{% url 'inventory:produit_ajouter' %}" class="btn btn-catalog-primary">
+                <i class="bi bi-plus-lg"></i> Ajouter un produit
+            </a>
+        </div>
+    </header>
+
+    <div class="catalog-summary">
+        <div><span class="catalog-summary-icon"><i class="bi bi-box-seam"></i></span><span><small>Produits au catalogue</small><strong>{{ nombre_produits }}</strong></span></div>
+        <div><span class="catalog-summary-icon alert"><i class="bi bi-exclamation-triangle"></i></span><span><small>En alerte</small><strong>{{ nombre_alertes }}</strong></span></div>
+        <div><span class="catalog-summary-icon success"><i class="bi bi-list-check"></i></span><span><small>Résultats affichés</small><strong>{{ page_obj.paginator.count }}</strong></span></div>
+    </div>
+
+    <form method="get" class="catalog-filters">
+        <div class="catalog-filter-heading">
+            <div>
+                <span class="section-eyebrow">Retrouver un article</span>
+                <h2><i class="bi bi-funnel"></i> Recherche et filtres</h2>
+            </div>
+            {% if recherche or categorie_active or alerte_active %}
+                <a href="{% url 'inventory:produits' %}" class="btn btn-sm btn-light">
+                    <i class="bi bi-x-circle"></i> Effacer
+                </a>
+            {% endif %}
+        </div>
+        <div class="row g-2 align-items-end">
+            <div class="col-12 col-lg-5">
+                <label for="catalogSearch" class="form-label">Nom ou référence</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input id="catalogSearch" class="form-control" type="search" name="q" value="{{ recherche }}" placeholder="Ex. marteau, REF-001">
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-3">
+                <label for="catalogCategory" class="form-label">Catégorie</label>
+                <select id="catalogCategory" name="categorie" class="form-select">
+                    <option value="">Toutes les catégories</option>
+                    {% for categorie in categories %}
+                        <option value="{{ categorie.id }}" {% if categorie_active == categorie.id|stringformat:"s" %}selected{% endif %}>{{ categorie.nom }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-2">
+                <label for="catalogStock" class="form-label">Disponibilité</label>
+                <select id="catalogStock" name="alerte" class="form-select">
+                    <option value="">Tous les stocks</option>
+                    <option value="1" {% if alerte_active %}selected{% endif %}>Stock en alerte</option>
+                </select>
+            </div>
+            <div class="col-12 col-lg-2 d-grid">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Rechercher</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="catalog-results-heading">
+        <div>
+            <h2>Catalogue</h2>
+            <p>{{ page_obj.paginator.count }} produit{{ page_obj.paginator.count|pluralize:"s" }} trouvé{{ page_obj.paginator.count|pluralize:"s" }}</p>
+        </div>
+        <a href="{% url 'reports:rapport_stock' %}?rapport=stock{% if categorie_active %}&categorie={{ categorie_active }}{% endif %}{% if alerte_active %}&alerte=1{% endif %}{% if recherche %}&q={{ recherche|urlencode }}{% endif %}" class="btn btn-sm btn-outline-success">
+            <i class="bi bi-file-earmark-bar-graph"></i> Imprimer cette sélection
+        </a>
+    </div>
+
+    <div class="catalog-grid">
+        {% for produit in produits %}
+            <article class="catalog-product-card">
+                <div class="catalog-product-top">
+                    <span class="catalog-product-symbol"><i class="bi bi-box"></i></span>
+                    {% if produit.en_alerte %}
+                        <span class="catalog-stock-badge low"><i class="bi bi-exclamation-circle"></i> Stock bas</span>
+                    {% else %}
+                        <span class="catalog-stock-badge ok"><i class="bi bi-check-circle"></i> Disponible</span>
+                    {% endif %}
+                </div>
+                <div class="catalog-product-title">
+                    <span>{{ produit.categorie.nom }}</span>
+                    <h3>{{ produit.nom }}</h3>
+                    <small>Réf. {{ produit.reference|default:"Non renseignée" }}</small>
+                </div>
+                <div class="catalog-product-metrics">
+                    <div><span>Stock actuel</span><strong>{{ produit.quantite_stock }} <small>unités</small></strong></div>
+                    <div><span>Prix de vente</span><strong>{{ produit.prix_vente }} <small>/ unité</small></strong></div>
+                </div>
+                <div class="catalog-threshold"><i class="bi bi-bell"></i> Seuil d’alerte : {{ produit.seuil_alerte }} unités</div>
+                <div class="catalog-product-actions">
+                    <form method="post" action="{% url 'inventory:ajuster_stock' produit.id %}" class="catalog-adjust-form">
+                        {% csrf_token %}
+                        <label class="visually-hidden" for="quantity-{{ produit.id }}">Quantité à ajuster pour {{ produit.nom }}</label>
+                        <input id="quantity-{{ produit.id }}" type="number" name="quantite" class="form-control form-control-sm" placeholder="Qté" min="1" required>
+                        <label class="visually-hidden" for="movement-{{ produit.id }}">Type de mouvement</label>
+                        <select id="movement-{{ produit.id }}" name="type_mouvement" class="form-select form-select-sm">
+                            <option value="sortie">Vente</option>
+                            <option value="entree">Entrée</option>
+                        </select>
+                        <button class="btn btn-sm btn-primary" type="submit" title="Enregistrer le mouvement"><i class="bi bi-check-lg"></i></button>
+                    </form>
+                    <div class="catalog-icon-actions">
+                        <a href="{% url 'inventory:produit_modifier' produit.id %}" class="btn btn-sm btn-light" title="Modifier {{ produit.nom }}" aria-label="Modifier {{ produit.nom }}"><i class="bi bi-pencil"></i></a>
+                        <a href="{% url 'reports:fiche_produit_pdf' produit.id %}" class="btn btn-sm btn-light" title="Imprimer la fiche de stock de {{ produit.nom }}" aria-label="Imprimer la fiche de stock de {{ produit.nom }}"><i class="bi bi-printer"></i></a>
+                    </div>
+                </div>
+            </article>
+        {% empty %}
+            <div class="catalog-empty">
+                <span><i class="bi bi-box-seam"></i></span>
+                <h3>{% if recherche or categorie_active or alerte_active %}Aucun produit ne correspond à ces filtres{% else %}Votre catalogue est vide{% endif %}</h3>
+                <p>{% if recherche or categorie_active or alerte_active %}Modifiez votre recherche ou effacez les filtres pour voir les produits.{% else %}Ajoutez votre premier article pour commencer le suivi du stock.{% endif %}</p>
+                {% if recherche or categorie_active or alerte_active %}
+                    <a href="{% url 'inventory:produits' %}" class="btn btn-outline-secondary">Effacer les filtres</a>
+                {% else %}
+                    <a href="{% url 'inventory:produit_ajouter' %}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Ajouter un produit</a>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+
+    {% include "partials/pagination.html" with pagination_label="produits" %}
+</div>
+{% endblock %}

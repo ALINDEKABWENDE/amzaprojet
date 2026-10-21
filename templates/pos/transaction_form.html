@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Modifier une transaction{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <h4><i class="bi bi-pencil-square"></i> Modifier la transaction</h4>
+    <a href="{% url 'pos:historique' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Retour à l'historique
+    </a>
+</div>
+
+<div class="card auth-card p-4" style="max-width:520px; margin:0;">
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-2">
+            <label class="form-label">Type</label>
+            <input type="text" class="form-control" value="{{ transaction.get_type_transaction_display }}" disabled>
+        </div>
+        {% for field in form %}
+            {% if field.name != "type_transaction" %}
+            <div class="mb-2">
+                <label class="form-label">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}<div class="text-danger small">{{ field.errors|first }}</div>{% endif %}
+            </div>
+            {% endif %}
+        {% endfor %}
+        <div class="alert alert-warning small mt-2">
+            <i class="bi bi-exclamation-triangle"></i>
+            Le type, l’opérateur, le montant et la devise ne sont pas modifiables ici, car ils déterminent les soldes.
+            Pour corriger ces données, contactez l’administrateur.
+        </div>
+        <button type="submit" class="btn btn-primary w-100 py-2 mt-2">Enregistrer</button>
+    </form>
+</div>
+{% endblock %}

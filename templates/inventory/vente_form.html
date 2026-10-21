@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+{% block title %}Nouvelle vente{% endblock %}
+
+{% block content %}
+<div class="page-header sale-page-header">
+    <div>
+        <span class="section-eyebrow">Point de vente</span>
+        <h4><i class="bi bi-cart-check"></i> Nouvelle vente</h4>
+        <p class="text-muted mb-0">{{ site.nom }} · Sélectionnez les articles et leurs quantités.</p>
+    </div>
+    <a href="{% url 'inventory:dashboard' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Retour au stock
+    </a>
+</div>
+
+{% if lignes_produits %}
+<form method="post" id="saleForm">
+    {% csrf_token %}
+    <div class="sale-layout">
+        <section class="sale-products" aria-labelledby="saleProductsTitle">
+            <div class="sale-section-heading">
+                <div>
+                    <h5 id="saleProductsTitle"><i class="bi bi-box-seam"></i> Articles disponibles</h5>
+                    <p class="text-muted mb-0">Le stock sera mis à jour après validation.</p>
+                </div>
+                <span class="sale-product-count" id="saleProductCount" aria-live="polite" data-total="{{ lignes_produits|length }}">{{ lignes_produits|length }} article{{ lignes_produits|length|pluralize }}</span>
+            </div>
+
+            <div class="sale-search">
+                <label for="saleProductSearch" class="visually-hidden">Rechercher un produit à vendre</label>
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <input id="saleProductSearch" type="search" class="form-control"
+                       placeholder="Rechercher un produit, une référence ou une catégorie..."
+                       autocomplete="off" aria-controls="saleProductList">
+                <button id="clearSaleProductSearch" class="sale-search-clear" type="button"
+                        aria-label="Effacer la recherche" hidden>
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <p class="sale-search-status" id="saleSearchStatus" aria-live="polite"></p>
+
+            <div class="sale-product-list" id="saleProductList">
+                {% for ligne in lignes_produits %}
+                <article class="sale-product-card" data-sale-product
+                         data-search-text="{{ ligne.produit.nom }} {{ ligne.produit.reference }} {{ ligne.produit.categorie.nom }}">
+                    <div class="sale-product-info">
+                        <span class="sale-product-icon"><i class="bi bi-box"></i></span>
+                        <div class="sale-product-copy">
+                            <h6>{{ ligne.produit.nom }}</h6>
+                            <div class="sale-product-meta">
+                                <span>{{ ligne.produit.categorie.nom }}</span>
+                                {% if ligne.produit.reference %}<span>Réf. {{ ligne.produit.reference }}</span>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sale-product-price">
+                        <span>Prix unitaire</span>
+                        <strong>{{ ligne.produit.prix_vente|floatformat:2 }}</strong>
+                    </div>
+                    <div class="sale-product-stock">
+                        <span>En stock</span>
+                        <strong>{{ ligne.produit.quantite_stock }}</strong>
+                    </div>
+                    <div class="sale-product-quantity">
+                        <label for="quantity-{{ ligne.produit.id }}">Quantité</label>
+                        <div class="sale-quantity-control">
+                            <button type="button" class="sale-quantity-button" data-quantity-step="-1"
+                                    aria-label="Retirer un {{ ligne.produit.nom }}">−</button>
+                            <input type="number" id="quantity-{{ ligne.produit.id }}"
+                                   name="quantite_{{ ligne.produit.id }}" min="0"
+                                   max="{{ ligne.produit.quantite_stock }}" step="1"
+                                   value="{{ ligne.quantite }}" inputmode="numeric"
+                                   data-sale-quantity data-price="{{ ligne.produit.prix_vente }}"
+                                   aria-label="Quantité vendue pour {{ ligne.produit.nom }}">
+                            <button type="button" class="sale-quantity-button" data-quantity-step="1"
+                                    aria-label="Ajouter un {{ ligne.produit.nom }}">+</button>
+                        </div>
+                    </div>
+                    <div class="sale-product-subtotal">
+                        <span>Sous-total</span>
+                        <strong data-line-total>0,00</strong>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+            <div class="sale-search-empty" id="saleSearchEmpty" hidden>
+                <i class="bi bi-search"></i>
+                <strong>Aucun produit trouvé</strong>
+                <span>Essayez un autre nom, une référence ou une catégorie.</span>
+            </div>
+        </section>
+
+        <aside class="sale-summary" aria-labelledby="saleSummaryTitle">
+            <div class="sale-summary-top">
+                <span class="sale-summary-icon"><i class="bi bi-receipt-cutoff"></i></span>
+                <div>
+                    <span class="section-eyebrow">Récapitulatif</span>
+                    <h5 id="saleSummaryTitle">Votre panier</h5>
+                </div>
+            </div>
+            <div class="sale-summary-stats">
+                <div><span>Articles sélectionnés</span><strong id="saleItemCount">0</strong></div>
+                <div><span>Quantité totale</span><strong id="saleQuantityCount">0</strong></div>
+            </div>
+            <div class="sale-summary-total">
+                <span>Montant estimé</span>
+                <strong id="saleTotal">0,00</strong>
+                <small>Le montant final sera indiqué sur le reçu.</small>
+            </div>
+            <button type="submit" class="btn btn-success sale-submit" id="saleSubmit" disabled>
+                <i class="bi bi-check2-circle"></i> Enregistrer et imprimer le reçu
+            </button>
+            <p class="sale-summary-note"><i class="bi bi-shield-check"></i> Le stock est contrôlé avant l’enregistrement.</p>
+        </aside>
+    </div>
+</form>
+{% else %}
+<div class="empty-state">
+    <i class="bi bi-box-seam"></i>
+    Aucun produit n'est disponible pour ce site.
+    <div class="mt-2"><a href="{% url 'inventory:produit_ajouter' %}" class="btn btn-sm btn-primary">Ajouter un produit</a></div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(() => {
+    const form = document.getElementById("saleForm");
+    if (!form) return;
+
+    const inputs = Array.from(form.querySelectorAll("[data-sale-quantity]"));
+    const itemCount = document.getElementById("saleItemCount");
+    const quantityCount = document.getElementById("saleQuantityCount");
+    const totalElement = document.getElementById("saleTotal");
+    const submitButton = document.getElementById("saleSubmit");
+    const searchInput = document.getElementById("saleProductSearch");
+    const searchCount = document.getElementById("saleProductCount");
+    const searchStatus = document.getElementById("saleSearchStatus");
+    const searchEmpty = document.getElementById("saleSearchEmpty");
+    const clearSearchButton = document.getElementById("clearSaleProductSearch");
+    const productCards = Array.from(form.querySelectorAll("[data-sale-product]"));
+    const money = new Intl.NumberFormat("fr-FR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+
+    const normalize = (value) => value
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLocaleLowerCase("fr");
+
+    const filterProducts = () => {
+        const query = normalize(searchInput.value.trim());
+        let visibleCount = 0;
+
+        productCards.forEach((card) => {
+            const matches = normalize(card.dataset.searchText).includes(query);
+            card.hidden = !matches;
+            if (matches) visibleCount += 1;
+        });
+
+        searchCount.textContent = `${visibleCount} article${visibleCount > 1 ? "s" : ""}`;
+        searchStatus.textContent = query
+            ? `${visibleCount} résultat${visibleCount > 1 ? "s" : ""} pour « ${searchInput.value.trim()} »`
+            : "";
+        searchEmpty.hidden = visibleCount > 0;
+        clearSearchButton.hidden = query.length === 0;
+    };
+
+    const updateCart = () => {
+        let items = 0;
+        let quantities = 0;
+        let total = 0;
+
+        inputs.forEach((input) => {
+            const quantity = Math.max(0, Number.parseInt(input.value, 10) || 0);
+            const price = Number.parseFloat(input.dataset.price) || 0;
+            const lineTotal = quantity * price;
+            const productCard = input.closest("[data-sale-product]");
+            productCard.querySelector("[data-line-total]").textContent = money.format(lineTotal);
+            if (quantity > 0) items += 1;
+            quantities += quantity;
+            total += lineTotal;
+        });
+
+        itemCount.textContent = items;
+        quantityCount.textContent = quantities;
+        totalElement.textContent = money.format(total);
+        submitButton.disabled = quantities === 0;
+    };
+
+    form.addEventListener("input", (event) => {
+        if (event.target.matches("[data-sale-quantity]")) updateCart();
+    });
+
+    form.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-quantity-step]");
+        if (!button) return;
+        const input = button.parentElement.querySelector("[data-sale-quantity]");
+        const current = Number.parseInt(input.value, 10) || 0;
+        const max = Number.parseInt(input.max, 10);
+        input.value = Math.min(max, Math.max(0, current + Number(button.dataset.quantityStep)));
+        updateCart();
+    });
+
+    searchInput.addEventListener("input", filterProducts);
+    clearSearchButton.addEventListener("click", () => {
+        searchInput.value = "";
+        filterProducts();
+        searchInput.focus();
+    });
+
+    updateCart();
+})();
+</script>
+{% endblock %}

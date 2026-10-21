@@ -1,0 +1,416 @@
+{% extends "base.html" %}
+{% block title %}Tableau de bord — Shop{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <h4><i class="bi bi-cash-coin"></i> {{ site.nom }}</h4>
+    <a href="{% url 'pos:historique' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-clock-history"></i> Historique complet
+    </a>
+</div>
+
+<div class="solde-caisse mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <div>
+        <div class="cash-balance-label"><i class="bi bi-wallet2"></i> Solde de caisse</div>
+        <div class="cash-balance-value">{{ caisse.solde|floatformat:2 }} USD</div>
+        <div class="cash-balance-value">{{ caisse.solde_cdf|floatformat:2 }} CDF</div>
+    </div>
+    <div class="cash-balance-period">
+        <span><i class="bi bi-calendar3"></i> Période analysée</span>
+        <div>{{ debut_stats }} <span class="mx-2">→</span> {{ fin_stats }}</div>
+    </div>
+</div>
+
+<section class="dashboard-insights mb-4">
+    <div class="insights-heading">
+        <div>
+            <span class="section-eyebrow">Vue d’ensemble</span>
+            <h5 class="mb-1"><i class="bi bi-graph-up-arrow"></i> Activité de la caisse</h5>
+            <p class="text-muted mb-0 small">Dépôts et retraits sur la période sélectionnée</p>
+        </div>
+        <form method="get" class="insights-filter">
+            <label class="visually-hidden" for="cashStart">Du</label>
+            <input id="cashStart" type="date" name="debut" value="{{ debut_stats }}" class="form-control form-control-sm">
+            <span class="filter-separator">au</span>
+            <label class="visually-hidden" for="cashEnd">Au</label>
+            <input id="cashEnd" type="date" name="fin" value="{{ fin_stats }}" class="form-control form-control-sm">
+            <label class="visually-hidden" for="cashOperator">Opérateur</label>
+            <select id="cashOperator" name="operateur" class="form-select form-select-sm">
+                <option value="">Tous les opérateurs</option>
+                {% for groupe, options in operateur_choices %}
+                <optgroup label="{{ groupe }}">
+                    {% for value, label in options %}
+                    <option value="{{ value }}" {% if operateur_actif == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </optgroup>
+                {% endfor %}
+            </select>
+            <label class="visually-hidden" for="cashCurrency">Devise</label>
+            <select id="cashCurrency" name="devise" class="form-select form-select-sm">
+                <option value="">Toutes les devises</option>
+                {% for value, label in devise_choices %}
+                <option value="{{ value }}" {% if devise_active == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel"></i> Filtrer</button>
+        </form>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-sm-6 col-lg-3">
+            <div class="insight-stat">
+                <span class="insight-stat-icon deposits"><i class="bi bi-arrow-down-circle"></i></span>
+                <div><span class="insight-stat-label">Total dépôts</span><strong>{{ total_depots|floatformat:2 }} USD</strong><br><strong>{{ total_depots_cdf|floatformat:2 }} CDF</strong></div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-lg-3">
+            <div class="insight-stat">
+                <span class="insight-stat-icon withdrawals"><i class="bi bi-arrow-up-circle"></i></span>
+                <div><span class="insight-stat-label">Total retraits</span><strong>{{ total_retraits|floatformat:2 }} USD</strong><br><strong>{{ total_retraits_cdf|floatformat:2 }} CDF</strong></div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-lg-3">
+            <div class="insight-stat">
+                <span class="insight-stat-icon count"><i class="bi bi-receipt"></i></span>
+                <div><span class="insight-stat-label">Transactions</span><strong>{{ nombre_transactions }}</strong></div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-lg-3">
+            <div class="insight-stat">
+                <span class="insight-stat-icon deposits"><i class="bi bi-currency-exchange"></i></span>
+                <div><span class="insight-stat-label">Bénéfice (frais)</span><strong>{{ benefice|floatformat:2 }} USD</strong><br><strong>{{ benefice_cdf|floatformat:2 }} CDF</strong></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-12 col-xl-5">
+            <article class="chart-card h-100">
+                <div class="chart-heading">
+                    <div><h6>Répartition des montants</h6><p>Dépôts et retraits par devise</p></div>
+                    <span class="chart-heading-icon"><i class="bi bi-pie-chart"></i></span>
+                </div>
+                {% if nombre_transactions and devise_active %}
+                    <div class="chart-canvas chart-canvas-doughnut"><canvas id="cashTypeChart" aria-label="Répartition des montants des dépôts et retraits" role="img"></canvas></div>
+                {% elif not devise_active %}
+                    <div class="chart-empty"><i class="bi bi-currency-exchange"></i><span>Choisissez une devise pour afficher les montants sans les mélanger.</span></div>
+                {% else %}
+                    <div class="chart-empty"><i class="bi bi-pie-chart"></i><span>Aucune transaction pour cette période.</span></div>
+                {% endif %}
+            </article>
+        </div>
+        <div class="col-12 col-xl-7">
+            <article class="chart-card h-100">
+                <div class="chart-heading">
+                    <div><h6>Évolution des opérations</h6><p>Montants par jour et par devise</p></div>
+                    <span class="chart-heading-icon"><i class="bi bi-bar-chart"></i></span>
+                </div>
+                {% if labels_transactions and devise_active %}
+                    <div class="chart-canvas"><canvas id="cashActivityChart" aria-label="Montants quotidiens des dépôts et retraits" role="img"></canvas></div>
+                {% elif not devise_active %}
+                    <div class="chart-empty"><i class="bi bi-currency-exchange"></i><span>Choisissez une devise pour afficher les montants sans les mélanger.</span></div>
+                {% else %}
+                    <div class="chart-empty"><i class="bi bi-bar-chart"></i><span>Aucune donnée à afficher sur cette période.</span></div>
+                {% endif %}
+            </article>
+        </div>
+    </div>
+</section>
+
+<section class="dashboard-insights mb-4" id="soldeVirtuel">
+    <div class="insights-heading">
+        <div>
+            <span class="section-eyebrow">Disponibilité opérateur</span>
+            <h5 class="mb-1"><i class="bi bi-phone"></i> Soldes virtuels</h5>
+            <p class="text-muted mb-0 small">Un dépôt utilise ce solde; un retrait l’augmente. Les montants sont séparés par opérateur et devise. Seul un administrateur peut définir ou réapprovisionner le solde.</p>
+        </div>
+        {% if user.is_staff %}
+        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalApprovisionnement">
+            <i class="bi bi-plus-circle"></i> Définir / approvisionner
+        </button>
+        {% endif %}
+    </div>
+    <div class="table-responsive data-table">
+        <table class="table table-hover mb-0 align-middle">
+            <thead><tr><th>Opérateur</th><th>Devise</th><th>Solde virtuel disponible</th></tr></thead>
+            <tbody>
+            {% for solde in soldes_operateurs %}
+                <tr>
+                    <td>{{ solde.operateur_affiche }}</td>
+                    <td>{{ solde.devise }}</td>
+                    <td>{{ solde.solde|floatformat:2 }} {{ solde.devise }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="3" class="text-center text-muted py-4">Aucun solde défini. Ajoutez le solde virtuel de départ de vos opérateurs.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <button class="pos-btn depot w-100" data-bs-toggle="modal" data-bs-target="#modalTransaction" data-type="depot">
+            <i class="bi bi-arrow-down-circle"></i> Dépôt
+        </button>
+    </div>
+    <div class="col-md-6">
+        <button class="pos-btn retrait w-100" data-bs-toggle="modal" data-bs-target="#modalTransaction" data-type="retrait">
+            <i class="bi bi-arrow-up-circle"></i> Retrait
+        </button>
+    </div>
+</div>
+
+<div id="transactions" class="filter-bar mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Transactions de la période</h5>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <form method="get" class="d-flex align-items-center gap-2 m-0">
+            <input type="hidden" name="debut" value="{{ debut_stats }}">
+            <input type="hidden" name="fin" value="{{ fin_stats }}">
+            {% if operateur_actif %}<input type="hidden" name="operateur" value="{{ operateur_actif }}">{% endif %}
+            {% if devise_active %}<input type="hidden" name="devise" value="{{ devise_active }}">{% endif %}
+            <label for="transactionPageSize" class="small text-muted mb-0">Lignes</label>
+            <select id="transactionPageSize" name="page_size" class="form-select form-select-sm" aria-label="Transactions par page" onchange="this.form.submit()">
+                {% for taille in page_size_choices %}
+                <option value="{{ taille }}" {% if page_size == taille %}selected{% endif %}>{{ taille }}</option>
+                {% endfor %}
+            </select>
+        </form>
+        <a href="{% url 'reports:livre_caisse_pdf' %}?{{ report_querystring }}" class="btn btn-sm btn-accent">
+            <i class="bi bi-file-earmark-pdf"></i> Livre de caisse (PDF)
+        </a>
+    </div>
+</div>
+
+<div class="table-responsive data-table">
+<table class="table table-hover mb-0 align-middle">
+    <thead><tr><th>Date / heure</th><th>Type</th><th>Opérateur</th><th>Client</th><th>Téléphone</th><th>Montant</th><th>Devise</th><th>Ticket</th></tr></thead>
+    <tbody>
+    {% for t in transactions %}
+        <tr>
+            <td>{{ t.date_transaction|date:"d/m/Y H:i" }}</td>
+            <td>
+                {% if t.type_transaction == "depot" %}
+                    <span class="badge bg-success">Dépôt</span>
+                {% else %}
+                    <span class="badge bg-danger">Retrait</span>
+                {% endif %}
+            </td>
+            <td><span class="badge-operateur {{ t.operateur_categorie }}">{{ t.operateur_affiche }}</span></td>
+            <td>{{ t.client_nom }}</td>
+            <td>{{ t.client_telephone }}</td>
+            <td>{{ t.montant|floatformat:2 }}</td>
+            <td>{{ t.devise }}</td>
+            <td class="d-flex gap-1">
+                <a href="{% url 'reports:ticket_pdf' t.id %}" class="btn btn-sm btn-outline-secondary" title="Ticket PDF"><i class="bi bi-printer"></i></a>
+                <a href="{% url 'pos:transaction_modifier' t.id %}" class="btn btn-sm btn-outline-secondary" title="Modifier"><i class="bi bi-pencil"></i></a>
+            </td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="8">
+            <div class="empty-state">
+                <i class="bi bi-inbox"></i>
+                Aucune transaction {% if operateur_actif %}pour cet opérateur {% endif %}sur cette période.
+            </div>
+        </td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+
+{% include "partials/pagination.html" with show_single_page_pagination=True pagination_label="transactions" pagination_anchor="transactions" %}
+
+<!-- Modal nouvelle transaction -->
+<div class="modal fade" id="modalTransaction" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'pos:nouvelle_transaction' %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Nouvelle transaction</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="type_transaction" id="typeTransactionInput">
+                    <div class="mb-2">
+                        <label class="form-label">Opérateur</label>
+                        <select name="operateur" id="operateurInput" class="form-select" required>
+                            {% for groupe, options in operateur_choices %}
+                            <optgroup label="{{ groupe }}">
+                                {% for value, label in options %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </optgroup>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-2" id="operateurAutreWrapper" style="display:none;">
+                        <label class="form-label">Nom de l'opérateur</label>
+                        <input type="text" name="operateur_autre" id="operateurAutreInput" class="form-control" placeholder="Ex : Nita Money">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Nom du client</label>
+                        <input type="text" name="client_nom" class="form-control" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Téléphone</label>
+                        <input type="text" name="client_telephone" class="form-control" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Devise</label>
+                        <select name="devise" class="form-select" required>
+                            <option value="" selected disabled>Choisissez la devise</option>
+                            {% for value, label in devise_choices %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Montant</label>
+                        <input type="number" step="0.01" name="montant" class="form-control" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Frais (optionnel)</label>
+                        <input type="number" step="0.01" name="frais" class="form-control" value="0">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary w-100">Valider</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% if user.is_staff %}
+<div class="modal fade" id="modalApprovisionnement" tabindex="-1" aria-labelledby="modalApprovisionnementTitle" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'pos:approvisionner_solde_operateur' %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalApprovisionnementTitle">Solde virtuel opérateur</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">Saisissez le montant initial ou le montant à ajouter au solde existant.</p>
+                    <div class="mb-3">
+                        <label class="form-label" for="floatOperator">Opérateur</label>
+                        <select id="floatOperator" name="operateur" class="form-select" required>
+                            {% for groupe, options in operateur_choices %}
+                            <optgroup label="{{ groupe }}">
+                                {% for value, label in options %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </optgroup>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3" id="floatOperatorOtherWrapper" style="display:none;">
+                        <label class="form-label" for="floatOperatorOther">Nom de l'opérateur</label>
+                        <input id="floatOperatorOther" type="text" name="operateur_autre" class="form-control" maxlength="100" placeholder="Ex. : Nita Money">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="floatCurrency">Devise</label>
+                        <select id="floatCurrency" name="devise" class="form-select" required>
+                            {% for value, label in devise_choices %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label" for="floatAmount">Montant à ajouter</label>
+                        <input id="floatAmount" type="number" name="montant" class="form-control" step="0.01" min="0.01" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary w-100">Enregistrer le solde</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+{{ labels_transactions|json_script:"cash-activity-labels" }}
+{{ depots_par_jour|json_script:"cash-deposits-data" }}
+{{ retraits_par_jour|json_script:"cash-withdrawals-data" }}
+{{ depots_cdf_par_jour|json_script:"cash-deposits-cdf-data" }}
+{{ retraits_cdf_par_jour|json_script:"cash-withdrawals-cdf-data" }}
+<script>
+const cashTypeCanvas = document.getElementById('cashTypeChart');
+if (cashTypeCanvas && window.Chart) {
+    new Chart(cashTypeCanvas, {
+        type: 'doughnut',
+        data: {
+            labels: ['Dépôts USD', 'Retraits USD', 'Dépôts CDF', 'Retraits CDF'],
+            datasets: [{
+                data: [{{ total_depots|default:0 }}, {{ total_retraits|default:0 }}, {{ total_depots_cdf|default:0 }}, {{ total_retraits_cdf|default:0 }}],
+                backgroundColor: ['#2d9b69', '#df6658', '#78c99d', '#eea096'],
+                borderColor: '#fff',
+                borderWidth: 3,
+                hoverOffset: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '64%',
+            plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 18 } } }
+        }
+    });
+}
+
+const cashActivityCanvas = document.getElementById('cashActivityChart');
+if (cashActivityCanvas && window.Chart) {
+    new Chart(cashActivityCanvas, {
+        type: 'bar',
+        data: {
+            labels: JSON.parse(document.getElementById('cash-activity-labels').textContent),
+            datasets: [
+                { label: 'Dépôts USD', data: JSON.parse(document.getElementById('cash-deposits-data').textContent), backgroundColor: '#2d9b69', borderRadius: 6 },
+                { label: 'Retraits USD', data: JSON.parse(document.getElementById('cash-withdrawals-data').textContent), backgroundColor: '#df6658', borderRadius: 6 },
+                { label: 'Dépôts CDF', data: JSON.parse(document.getElementById('cash-deposits-cdf-data').textContent), backgroundColor: '#78c99d', borderRadius: 6 },
+                { label: 'Retraits CDF', data: JSON.parse(document.getElementById('cash-withdrawals-cdf-data').textContent), backgroundColor: '#eea096', borderRadius: 6 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true } },
+            plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 18 } } }
+        }
+    });
+}
+
+document.querySelectorAll('[data-bs-target="#modalTransaction"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const type = btn.dataset.type;
+        document.getElementById('typeTransactionInput').value = type;
+        document.getElementById('modalTitle').innerText = type === 'depot' ? 'Nouveau dépôt' : 'Nouveau retrait';
+    });
+});
+
+const operateurSelect = document.getElementById('operateurInput');
+const operateurAutreWrapper = document.getElementById('operateurAutreWrapper');
+const updateOtherOperatorVisibility = () => {
+    const autre = operateurSelect.value === 'autre_mobile' || operateurSelect.value === 'autre_banque';
+    operateurAutreWrapper.style.display = autre ? 'block' : 'none';
+};
+operateurSelect.addEventListener('change', updateOtherOperatorVisibility);
+updateOtherOperatorVisibility();
+
+const floatOperatorSelect = document.getElementById('floatOperator');
+const floatOperatorOtherWrapper = document.getElementById('floatOperatorOtherWrapper');
+const updateFloatOtherOperatorVisibility = () => {
+    const autre = floatOperatorSelect.value === 'autre_mobile' || floatOperatorSelect.value === 'autre_banque';
+    floatOperatorOtherWrapper.style.display = autre ? 'block' : 'none';
+};
+floatOperatorSelect.addEventListener('change', updateFloatOtherOperatorVisibility);
+updateFloatOtherOperatorVisibility();
+</script>
+{% endblock %}

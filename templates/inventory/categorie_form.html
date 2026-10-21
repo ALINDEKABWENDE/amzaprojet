@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Catégories — {{ request.user.site_actif.nom }}{% endblock %}
+{% block content %}
+<div class="category-page">
+    <header class="category-hero">
+        <div>
+            <span class="section-eyebrow">Organisation du catalogue</span>
+            <h1>Catégories</h1>
+            <p>Classez vos produits pour retrouver rapidement les articles et suivre votre stock.</p>
+        </div>
+        <a href="{% url 'inventory:dashboard' %}" class="btn category-back-button">
+            <i class="bi bi-arrow-left"></i> Tableau de bord
+        </a>
+        <i class="bi bi-tags category-hero-decoration" aria-hidden="true"></i>
+    </header>
+
+    <div class="category-overview">
+        <div class="category-overview-card">
+            <span class="category-overview-icon"><i class="bi bi-tags"></i></span>
+            <span><small>Catégories créées</small><strong>{{ categories|length }}</strong></span>
+        </div>
+        <div class="category-overview-card">
+            <span class="category-overview-icon products"><i class="bi bi-box-seam"></i></span>
+            <span><small>Produits classés</small><strong>{{ nombre_produits_classes }}</strong></span>
+        </div>
+    </div>
+
+    <div class="category-layout">
+        <section class="category-form-card">
+            <div class="category-card-heading">
+                <span class="category-heading-icon"><i class="bi bi-plus-lg"></i></span>
+                <div>
+                    <h2>Créer une catégorie</h2>
+                    <p>Donnez un nom clair et facile à reconnaître.</p>
+                </div>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+                {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label category-field-label" for="{{ field.id_for_label }}">
+                            {{ field.label }}{% if field.field.required %}<span class="required-mark"> *</span>{% endif %}
+                        </label>
+                        {{ field }}
+                        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                        {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-primary category-create-button">
+                    <i class="bi bi-plus-circle"></i> Créer la catégorie
+                </button>
+            </form>
+            <div class="category-form-tip">
+                <i class="bi bi-lightbulb"></i>
+                <span>Exemples : outillage, plomberie, matériaux de construction.</span>
+            </div>
+        </section>
+
+        <section class="category-list-section">
+            <div class="category-list-heading">
+                <div>
+                    <span class="section-eyebrow">Votre organisation</span>
+                    <h2>Catégories existantes</h2>
+                </div>
+                <span class="category-list-count">{{ categories|length }}</span>
+            </div>
+
+            {% if categories %}
+                <div class="category-list">
+                    {% for cat in categories %}
+                        <article class="category-list-card">
+                            <span class="category-list-icon"><i class="bi bi-tag"></i></span>
+                            <div class="category-list-copy">
+                                <h3>{{ cat.nom }}</h3>
+                                <p>
+                                    {% if cat.product_count %}
+                                        {{ cat.product_count }} produit{{ cat.product_count|pluralize:"s" }}
+                                    {% else %}
+                                        Aucun produit pour le moment
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <span class="category-product-count" aria-label="{{ cat.product_count }} produits">
+                                <i class="bi bi-box"></i> {{ cat.product_count }}
+                            </span>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="category-empty-state">
+                    <span><i class="bi bi-tags"></i></span>
+                    <h3>Aucune catégorie pour l’instant</h3>
+                    <p>Créez votre première catégorie pour organiser les produits de votre catalogue.</p>
+                </div>
+            {% endif %}
+        </section>
+    </div>
+</div>
+{% endblock %}

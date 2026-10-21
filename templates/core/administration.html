@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% block title %}Administration des sites{% endblock %}
+{% block content %}
+<div class="admin-page">
+    <section class="admin-hero">
+        <div class="admin-hero-content">
+            <p class="section-eyebrow">Espace administrateur</p>
+            <h1>Gestion des sites</h1>
+            <p>Autorisez les nouveaux espaces et pilotez les activités de votre réseau depuis un seul endroit.</p>
+        </div>
+        <div class="admin-hero-actions">
+            <a href="{% url 'reports:rapports_administration' %}" class="btn btn-admin-report">
+                <i class="bi bi-file-earmark-bar-graph"></i>
+                <span>Rapports de tous les sites</span>
+            </a>
+            <a class="btn btn-admin-secondary" href="{% url 'admin:index' %}">
+                <i class="bi bi-gear"></i>
+                <span>Administration avancée</span>
+            </a>
+        </div>
+        <i class="bi bi-buildings admin-hero-decoration" aria-hidden="true"></i>
+    </section>
+
+    <section class="admin-stats" aria-label="Résumé des sites">
+        <article class="admin-stat-card">
+            <span class="admin-stat-icon total"><i class="bi bi-buildings"></i></span>
+            <div>
+                <span class="admin-stat-label">Tous les sites</span>
+                <strong>{{ nombre_sites }}</strong>
+                <span class="admin-stat-note">dans votre réseau</span>
+            </div>
+        </article>
+        <article class="admin-stat-card">
+            <span class="admin-stat-icon pending"><i class="bi bi-hourglass-split"></i></span>
+            <div>
+                <span class="admin-stat-label">En attente</span>
+                <strong>{{ sites_en_attente|length }}</strong>
+                <span class="admin-stat-note">à examiner</span>
+            </div>
+        </article>
+        <article class="admin-stat-card">
+            <span class="admin-stat-icon active"><i class="bi bi-check2-circle"></i></span>
+            <div>
+                <span class="admin-stat-label">Autorisés</span>
+                <strong>{{ sites_actifs|length }}</strong>
+                <span class="admin-stat-note">en activité</span>
+            </div>
+        </article>
+    </section>
+
+    <section class="admin-section">
+        <div class="admin-section-heading">
+            <div>
+                <span class="section-eyebrow">À traiter</span>
+                <h2>Sites en attente d’autorisation</h2>
+                <p>Ces utilisateurs attendent l’activation de leur espace de gestion.</p>
+            </div>
+            <span class="admin-count pending-count">
+                <i class="bi bi-hourglass-split"></i> {{ sites_en_attente|length }} en attente
+            </span>
+        </div>
+
+        <div class="admin-table-card">
+            {% if sites_en_attente %}
+                <div class="table-responsive">
+                    <table class="table admin-table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Site</th><th>Responsable</th><th>Activité</th>
+                                <th>Ville</th><th>Créé le</th><th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for site in sites_en_attente %}
+                            <tr>
+                                <td>
+                                    <span class="admin-site-name"><i class="bi bi-geo-alt"></i>{{ site.nom }}</span>
+                                </td>
+                                <td>
+                                    {% with responsable=site.vendeurs.all|first %}
+                                        {% if responsable %}
+                                            <span class="admin-responsable"><i class="bi bi-person-circle"></i>{{ responsable.get_full_name|default:responsable.username }}</span>
+                                        {% else %}<span class="admin-muted">—</span>{% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <span class="admin-activity {% if site.type_site == 'shop' %}shop{% else %}hardware{% endif %}">
+                                        {% if site.type_site == 'shop' %}<i class="bi bi-phone"></i>{% else %}<i class="bi bi-tools"></i>{% endif %}
+                                        {{ site.get_type_site_display }}
+                                    </span>
+                                </td>
+                                <td>{{ site.ville|default:"—" }}</td>
+                                <td>{{ site.date_creation|date:"d/m/Y" }}</td>
+                                <td class="text-end">
+                                    <form method="post" action="{% url 'core:site_approbation' site.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="actif" value="true">
+                                        <button class="btn btn-admin-approve btn-sm" type="submit">
+                                            <i class="bi bi-check-lg"></i> Autoriser
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="admin-empty-state">
+                    <span class="admin-empty-icon"><i class="bi bi-check2-circle"></i></span>
+                    <div>
+                        <h3>Tout est à jour</h3>
+                        <p>Aucun site n’attend actuellement votre autorisation.</p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="admin-section">
+        <div class="admin-section-heading">
+            <div>
+                <span class="section-eyebrow">Réseau actif</span>
+                <h2>Sites autorisés</h2>
+                <p>Accédez à la gestion des activités ou suspendez un site si nécessaire.</p>
+            </div>
+            <span class="admin-count active-count">
+                <i class="bi bi-check2-circle"></i> {{ sites_actifs|length }} autorisé{{ sites_actifs|length|pluralize:"s" }}
+            </span>
+        </div>
+
+        <div class="admin-table-card">
+            {% if sites_actifs %}
+                <div class="table-responsive">
+                    <table class="table admin-table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Site</th><th>Responsable</th><th>Activité</th>
+                                <th>Ville</th><th>État</th><th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for site in sites_actifs %}
+                            <tr>
+                                <td>
+                                    <span class="admin-site-name"><i class="bi bi-geo-alt"></i>{{ site.nom }}</span>
+                                </td>
+                                <td>
+                                    {% with responsable=site.vendeurs.all|first %}
+                                        {% if responsable %}
+                                            <span class="admin-responsable"><i class="bi bi-person-circle"></i>{{ responsable.get_full_name|default:responsable.username }}</span>
+                                        {% else %}<span class="admin-muted">—</span>{% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <span class="admin-activity {% if site.type_site == 'shop' %}shop{% else %}hardware{% endif %}">
+                                        {% if site.type_site == 'shop' %}<i class="bi bi-phone"></i>{% else %}<i class="bi bi-tools"></i>{% endif %}
+                                        {{ site.get_type_site_display }}
+                                    </span>
+                                </td>
+                                <td>{{ site.ville|default:"—" }}</td>
+                                <td><span class="admin-status"><span></span> Autorisé</span></td>
+                                <td class="text-end">
+                                    <div class="admin-row-actions">
+                                        <a href="{% url 'core:changer_site' site.id %}" class="btn btn-admin-manage btn-sm">
+                                            <i class="bi bi-box-arrow-in-right"></i> Gérer
+                                        </a>
+                                        <form method="post" action="{% url 'core:site_approbation' site.id %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="actif" value="false">
+                                            <button class="btn btn-admin-suspend btn-sm" type="submit"
+                                                    onclick="return confirm('Suspendre ce site ? Ses utilisateurs ne pourront plus accéder à l’application.');">
+                                                <i class="bi bi-pause-circle"></i> Suspendre
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="admin-empty-state">
+                    <span class="admin-empty-icon muted"><i class="bi bi-buildings"></i></span>
+                    <div>
+                        <h3>Aucun site autorisé</h3>
+                        <p>Les sites apparaîtront ici après leur approbation.</p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endblock %}

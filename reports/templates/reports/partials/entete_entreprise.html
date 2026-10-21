@@ -1,0 +1,19 @@
+<div class="company-header-running">
+    <table role="presentation" style="width:100%; border-collapse:collapse; border-bottom:3px solid #2c5f2d; margin:0;">
+        <tr>
+            <td style="padding:0 12px 10px 0; vertical-align:top;">
+                <div style="font-size:21px; line-height:1.2; font-weight:bold; color:#2c5f2d;">{{ site.nom }}</div>
+                <div style="margin-top:3px; font-size:10px; font-weight:bold; color:#555;">{{ site.get_type_site_display }}</div>
+                {% if site.adresse %}<div style="margin-top:4px; font-size:10px; color:#555;">Adresse : {{ site.adresse }}</div>{% endif %}
+                {% if site.ville %}<div style="margin-top:2px; font-size:10px; color:#555;">Ville : {{ site.ville }}</div>{% endif %}
+            </td>
+            {% if entete_document %}
+            <td style="padding:0 0 10px 12px; vertical-align:top; text-align:right;">
+                <div style="font-size:13px; font-weight:bold; color:#222;">{{ entete_document }}</div>
+                {% if reference_document %}<div style="margin-top:4px; font-size:10px; color:#555;">Référence : {{ reference_document }}</div>{% endif %}
+                {% if date_document %}<div style="margin-top:3px; font-size:10px; color:#555;">Date : {{ date_document|date:"d/m/Y H:i" }}</div>{% endif %}
+            </td>
+            {% endif %}
+        </tr>
+    </table>
+</div>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+    @page {
+        size: A5;
+        margin: 3.1cm 1.5cm 2.2cm;
+        @top-center { content: element(company-header); vertical-align: bottom; }
+        @bottom-center { content: element(company-footer); vertical-align: top; }
+        @bottom-right { content: "Page " counter(page) " / " counter(pages); font-size: 9px; color: #666; vertical-align: top; }
+    }
+    body { font-family: 'Helvetica', sans-serif; font-size: 11px; color: #222; }
+    .company-header-running { position: running(company-header); }
+    .company-footer-running { position: running(company-footer); border-top: 1px solid #dce6de; padding-top: 6px; color: #666; font-size: 9px; }
+    .infos { background: #f4f8f4; padding: 10px; border-radius: 6px; margin-bottom: 15px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #2c5f2d; color: white; padding: 6px; text-align: left; }
+    td { padding: 6px; border-bottom: 1px solid #eee; }
+</style>
+</head>
+<body>
+    {% include "reports/partials/entete_entreprise.html" with entete_document="FICHE DE STOCK" reference_document=reference_document date_document=date_generation %}
+    {% include "reports/partials/pied_entreprise.html" %}
+    <h2 style="font-size:16px; margin:0 0 10px; color:#2c5f2d;">{{ produit.nom }}</h2>
+    <div class="infos">
+        Référence : {{ produit.reference|default:"—" }} &nbsp;|&nbsp;
+        Catégorie : {{ produit.categorie.nom }} &nbsp;|&nbsp;
+        Stock actuel : <strong>{{ produit.quantite_stock }}</strong> &nbsp;|&nbsp;
+        Seuil d'alerte : {{ produit.seuil_alerte }}
+    </div>
+
+    <table>
+        <thead><tr><th>Date</th><th>Type</th><th>Quantité</th><th>Prix</th><th>Agent</th></tr></thead>
+        <tbody>
+        {% for m in mouvements %}
+            <tr>
+                <td>{{ m.date_mouvement|date:"d/m/Y H:i" }}</td>
+                <td>{{ m.get_type_mouvement_display }}</td>
+                <td>{{ m.quantite }}</td>
+                <td>{{ m.prix_unitaire }}</td>
+                <td>{{ m.utilisateur }}</td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="5">Aucun mouvement enregistré.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

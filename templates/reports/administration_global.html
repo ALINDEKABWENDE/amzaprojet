@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}Rapports de tous les sites{% endblock %}
+{% block content %}
+<div class="container py-4 admin-reports-page">
+    <header class="admin-report-hero mb-4">
+        <div class="admin-report-hero-copy">
+            <span class="admin-report-eyebrow"><i class="bi bi-shield-check me-1"></i> Espace administrateur</span>
+            <h1>Rapports de tous les sites</h1>
+            <p>Consultez l’activité, comparez les sites et imprimez un rapport clair.</p>
+        </div>
+        <a href="{% url 'core:administration' %}" class="btn admin-report-back">
+            <i class="bi bi-arrow-left me-1"></i> Gestion des sites
+        </a>
+    </header>
+
+    <form method="get" class="admin-report-filters mb-4">
+        <div class="admin-report-filter-heading">
+            <span class="admin-report-filter-icon"><i class="bi bi-sliders"></i></span>
+            <div>
+                <h2>Personnaliser le rapport</h2>
+                <p>Choisissez le type de données, un site et une période.</p>
+            </div>
+        </div>
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label" for="type">Type de rapport</label>
+                <select class="form-select" id="type" name="type">
+                    <option value="caisse" {% if type_rapport == "caisse" %}selected{% endif %}>Transactions Mobile Money</option>
+                    <option value="stock" {% if type_rapport == "stock" %}selected{% endif %}>Mouvements de stock</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="site">Site</label>
+                <select class="form-select" id="site" name="site">
+                    <option value="">Tous les sites</option>
+                    {% for s in sites %}
+                        <option value="{{ s.id }}" {% if site_selectionne.id == s.id %}selected{% endif %}>{{ s.nom }} — {{ s.get_type_site_display }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="debut">Date de début</label>
+                <input class="form-control" type="date" id="debut" name="debut" value="{{ debut|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="fin">Date de fin</label>
+                <input class="form-control" type="date" id="fin" name="fin" value="{{ fin|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="par_page">Lignes par page</label>
+                <select class="form-select" id="par_page" name="par_page">
+                    <option value="10" {% if page_size == "10" %}selected{% endif %}>10</option>
+                    <option value="25" {% if page_size == "25" %}selected{% endif %}>25</option>
+                    <option value="50" {% if page_size == "50" %}selected{% endif %}>50</option>
+                </select>
+            </div>
+            <div class="col-md-1 d-grid">
+                <button class="btn btn-primary admin-report-filter-button" type="submit">
+                    <i class="bi bi-search"></i><span class="visually-hidden">Afficher</span>
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <section class="admin-report-results">
+        <div class="admin-report-results-heading">
+            <div>
+                <span class="admin-report-eyebrow text-success">Résultat du rapport</span>
+                <h2>{% if type_rapport == "caisse" %}Activité de caisse{% else %}Mouvements de stock{% endif %}</h2>
+            </div>
+            <div class="admin-report-actions">
+                <a class="btn btn-outline-success" href="{% url 'reports:rapports_administration_pdf' %}?{{ request.GET.urlencode }}" target="_blank" rel="noopener">
+                    <i class="bi bi-printer me-1"></i> Imprimer
+                </a>
+                <a class="btn btn-success" href="{% url 'reports:rapports_administration_pdf' %}?{{ request.GET.urlencode }}" target="_blank" rel="noopener">
+                    <i class="bi bi-file-earmark-pdf me-1"></i> Télécharger PDF
+                </a>
+            </div>
+        </div>
+        {% include "reports/administration_global_body.html" %}
+        {% if page_obj.paginator.count %}
+        <div class="admin-report-pagination">
+            <div class="admin-report-pagination-info">
+                Affichage de <strong>{{ page_obj.start_index }}</strong> à
+                <strong>{{ page_obj.end_index }}</strong> sur
+                <strong>{{ page_obj.paginator.count }}</strong> lignes
+            </div>
+            {% if page_obj.paginator.num_pages > 1 %}
+            <nav aria-label="Pagination du rapport">
+                <ul class="pagination mb-0">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{{ querystring }}&page=1" aria-label="Première page"><i class="bi bi-chevron-double-left"></i></a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?{{ querystring }}&page={{ page_obj.previous_page_number }}" aria-label="Page précédente"><i class="bi bi-chevron-left"></i> Précédent</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link"><i class="bi bi-chevron-left"></i> Précédent</span></li>
+                    {% endif %}
+                    <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{{ querystring }}&page={{ page_obj.next_page_number }}">Suivant <i class="bi bi-chevron-right"></i></a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?{{ querystring }}&page={{ page_obj.paginator.num_pages }}" aria-label="Dernière page"><i class="bi bi-chevron-double-right"></i></a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">Suivant <i class="bi bi-chevron-right"></i></span></li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+        {% endif %}
+    </section>
+</div>
+<style>
+.admin-reports-page { max-width: 1440px; }
+.admin-report-hero {
+    display:flex; align-items:center; justify-content:space-between; gap:1.5rem;
+    padding:2rem 2.2rem; color:#fff; border-radius:22px;
+    background:linear-gradient(120deg,#103d2b 0%,#155635 58%,#278453 100%);
+    box-shadow:0 16px 34px rgba(16,61,43,.17); position:relative; overflow:hidden;
+}
+.admin-report-hero:after {
+    content:""; position:absolute; width:260px; height:260px; border-radius:50%;
+    right:12%; top:-180px; background:rgba(255,255,255,.08);
+}
+.admin-report-hero-copy,.admin-report-back { position:relative; z-index:1; }
+.admin-report-hero h1 { font-size:clamp(1.65rem,3vw,2.3rem); font-weight:800; margin:.45rem 0; }
+.admin-report-hero p { margin:0; color:rgba(255,255,255,.78); }
+.admin-report-eyebrow { color:#bfe4cd; text-transform:uppercase; font-size:.75rem; font-weight:800; letter-spacing:.1em; }
+.admin-report-back { color:#fff; border:1px solid rgba(255,255,255,.45); white-space:nowrap; }
+.admin-report-back:hover { background:#fff; color:#155635; }
+.admin-report-filters,.admin-report-results {
+    border:1px solid rgba(27,69,49,.08); border-radius:18px; background:#fff;
+    box-shadow:0 12px 32px rgba(22,72,47,.07);
+}
+.admin-report-filters { padding:1.4rem; }
+.admin-report-filter-heading { display:flex; align-items:center; gap:.85rem; margin-bottom:1.2rem; }
+.admin-report-filter-heading h2,.admin-report-results-heading h2 { font-size:1.08rem; font-weight:800; margin:0 0 .15rem; }
+.admin-report-filter-heading p { color:#6b7a70; font-size:.9rem; margin:0; }
+.admin-report-filter-icon { width:2.7rem; height:2.7rem; display:grid; place-items:center; border-radius:13px; background:#eaf5ed; color:#1f6f46; font-size:1.2rem; }
+.admin-report-filters .form-label { color:#31483a; font-size:.83rem; font-weight:700; }
+.admin-report-filters .form-select,.admin-report-filters .form-control { min-height:44px; border-color:#dce8df; border-radius:10px; }
+.admin-report-filter-button { min-height:44px; font-weight:700; }
+.admin-report-results { padding:1.4rem; }
+.admin-report-document-header { display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; padding:0 0 .8rem; margin-bottom:.9rem; border-bottom:3px solid #2c5f2d; }
+.admin-report-document-brand { color:#2c5f2d; font-size:1.3rem; font-weight:800; }
+.admin-report-document-meta { color:#66756b; font-size:.83rem; margin-top:.25rem; }
+.admin-report-document-title { color:#24392c; text-align:right; font-size:.9rem; font-weight:800; }
+.admin-report-document-title small { display:block; color:#66756b; font-size:.75rem; font-weight:400; margin-top:.25rem; }
+.admin-report-results-heading { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.1rem; }
+.admin-report-results-heading h2 { font-size:1.35rem; margin-top:.25rem; }
+.admin-report-actions { display:flex; gap:.55rem; flex-wrap:wrap; }
+.admin-report-summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:.8rem; margin-bottom:1.2rem; }
+.admin-report-metric { padding:1rem 1.1rem; border:1px solid #e5eee7; border-radius:14px; background:linear-gradient(145deg,#fff,#f6faf7); }
+.admin-report-metric-label { display:block; color:#63756a; font-size:.78rem; font-weight:700; margin-bottom:.3rem; }
+.admin-report-metric-value { color:#173e2a; font-size:1.25rem; font-weight:800; }
+.admin-report-metric-note { color:#75847a; font-size:.76rem; margin-top:.2rem; }
+.admin-report-table-wrap { overflow:auto; border:1px solid #e7eee9; border-radius:13px; }
+.admin-report-table { min-width:850px; margin:0; vertical-align:middle; }
+.admin-report-table thead th { padding:.8rem .75rem; color:#52665a; background:#f3f8f4; border-bottom:1px solid #dfe9e2; font-size:.73rem; text-transform:uppercase; letter-spacing:.045em; white-space:nowrap; }
+.admin-report-table tbody td { padding:.75rem; border-color:#edf2ee; font-size:.88rem; }
+.admin-report-table tbody tr:hover { background:#f8fbf8; }
+.admin-report-site { font-weight:700; color:#214a32; }
+.admin-report-badge { display:inline-flex; padding:.3rem .55rem; border-radius:99px; background:#e9f5ec; color:#267447; font-size:.75rem; font-weight:700; white-space:nowrap; }
+.admin-report-badge.stock { background:#fff4d7; color:#94620b; }
+.admin-report-empty { text-align:center; padding:2.4rem 1rem !important; color:#75847a; }
+.admin-report-empty i { display:block; font-size:1.8rem; color:#a7b8ac; margin-bottom:.45rem; }
+.admin-report-pagination { display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; padding-top:1rem; }
+.admin-report-pagination-info { color:#66756b; font-size:.86rem; }
+.admin-report-pagination .page-link { color:#1f6f46; border-color:#e1ebe4; }
+.admin-report-pagination .page-item.active .page-link { background:#1f6f46; border-color:#1f6f46; color:#fff; }
+.admin-report-pagination .page-item.disabled .page-link { color:#9aa99e; }
+@media (max-width: 767px) {
+    .admin-report-hero { align-items:flex-start; flex-direction:column; padding:1.5rem; }
+    .admin-report-results-heading { align-items:flex-start; flex-direction:column; }
+    .admin-report-filters,.admin-report-results { padding:1rem; }
+}
+@media print {
+    @page { size: landscape; margin: 12mm; }
+    body { background:#fff !important; padding:0 !important; }
+    .app-navbar,.app-footer,.admin-report-hero,.admin-report-filters,.admin-report-actions { display:none !important; }
+    .admin-reports-page { max-width:none !important; padding:0 !important; }
+    .admin-report-results { padding:0; border:0; box-shadow:none; }
+    .admin-report-results-heading,.admin-report-pagination { display:none !important; }
+    .admin-report-document-header { display:flex !important; }
+    .admin-report-table { min-width:0; }
+    .admin-report-table thead { display:table-header-group; }
+    .admin-report-table tr { break-inside:avoid; }
+}
+</style>
+{% endblock %}

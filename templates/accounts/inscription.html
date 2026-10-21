@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Créer un compte{% endblock %}
+{% block content %}
+<main class="login-layout register-layout">
+    <section class="login-welcome">
+        <a class="login-brand" href="{% url 'accounts:login' %}">
+            <span class="login-brand-mark"><i class="bi bi-shop"></i></span>
+            <span>Gestion Stock</span>
+        </a>
+        <div class="login-welcome-copy">
+            <span class="login-eyebrow">Commencez en quelques instants</span>
+            <h1>Un espace de gestion à votre image.</h1>
+            <p>Créez votre compte, choisissez votre activité et retrouvez vos outils de gestion au même endroit.</p>
+        </div>
+        <div class="login-feature-list">
+            <div><span class="login-feature-icon"><i class="bi bi-person-check"></i></span><span>Un compte personnel et sécurisé</span></div>
+            <div><span class="login-feature-icon"><i class="bi bi-shop-window"></i></span><span>Un espace adapté à votre activité</span></div>
+            <div><span class="login-feature-icon"><i class="bi bi-lightning-charge"></i></span><span>Prêt à configurer en quelques étapes</span></div>
+        </div>
+        <span class="login-decoration login-decoration-one"></span>
+        <span class="login-decoration login-decoration-two"></span>
+    </section>
+
+    <section class="login-form-panel register-form-panel">
+        <div class="login-form-heading">
+            <span class="login-mobile-mark"><i class="bi bi-person-plus"></i></span>
+            <span class="login-eyebrow">Étape 1 sur 2</span>
+            <h2>Créer un compte</h2>
+            <p>Renseignez vos informations pour commencer.</p>
+        </div>
+        <form method="post" class="login-form register-form">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger login-error" role="alert">
+                    <i class="bi bi-exclamation-circle"></i>
+                    <span>{{ form.non_field_errors|first }}</span>
+                </div>
+            {% endif %}
+            {% for field in form %}
+                <div class="mb-3">
+                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    <div class="login-input-wrap">
+                        {% if field.name == "username" %}
+                            <i class="bi bi-person"></i>
+                        {% elif field.name == "first_name" %}
+                            <i class="bi bi-person-badge"></i>
+                        {% elif field.name == "last_name" %}
+                            <i class="bi bi-card-text"></i>
+                        {% elif field.name == "telephone" %}
+                            <i class="bi bi-telephone"></i>
+                        {% else %}
+                            <i class="bi bi-lock"></i>
+                        {% endif %}
+                        {{ field }}
+                        {% if field.name == "password" or field.name == "password_confirm" %}
+                            <button type="button" class="login-password-toggle" aria-label="Afficher le mot de passe" aria-pressed="false">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        {% endif %}
+                    </div>
+                    {% if field.errors %}<div class="login-field-error">{{ field.errors|first }}</div>{% endif %}
+                </div>
+            {% endfor %}
+            <button type="submit" class="btn btn-primary login-submit">
+                Continuer <i class="bi bi-arrow-right"></i>
+            </button>
+        </form>
+        <p class="login-register">Déjà un compte ? <a href="{% url 'accounts:login' %}">Se connecter <i class="bi bi-arrow-up-right"></i></a></p>
+        <div class="login-security-note"><i class="bi bi-shield-check"></i> Vos informations restent protégées</div>
+    </section>
+</main>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.querySelectorAll('.login-password-toggle').forEach(toggle => {
+    toggle.addEventListener('click', () => {
+        const passwordField = toggle.parentElement.querySelector('input');
+        const showPassword = passwordField.type === 'password';
+        passwordField.type = showPassword ? 'text' : 'password';
+        toggle.setAttribute('aria-pressed', String(showPassword));
+        toggle.setAttribute('aria-label', showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+        toggle.querySelector('i').className = `bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`;
+    });
+});
+</script>
+{% endblock %}

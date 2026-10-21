@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<style>
+    @page { size: 80mm auto; margin: 3mm; }
+    body { width: 74mm; margin: 0; color: #111; font-family: 'Courier New', monospace; font-size: 10px; }
+    .center { text-align: center; }
+    .line { border-top: 1px dashed #222; margin: 7px 0; }
+    .title { font-size: 14px; font-weight: bold; }
+    .row { display: flex; justify-content: space-between; gap: 4px; margin: 4px 0; }
+    .item { margin: 7px 0; }
+    .item-name { font-weight: bold; overflow-wrap: anywhere; }
+    .item-details { display: flex; justify-content: space-between; gap: 4px; margin-top: 2px; }
+    .total { font-size: 13px; font-weight: bold; }
+</style>
+</head>
+<body>
+    <div class="center title">{{ site.nom }}</div>
+    <div class="center">{{ site.get_type_site_display }}</div>
+    {% if site.adresse %}<div class="center">{{ site.adresse }}</div>{% endif %}
+    {% if site.ville %}<div class="center">{{ site.ville }}</div>{% endif %}
+    <div class="line"></div>
+    <div class="center title">{{ entete_document }} N° {{ reference_document }}</div>
+    <div class="center">{{ date_document|date:"d/m/Y H:i" }}</div>
+    <div class="line"></div>
+    <div class="row"><span>Agent</span><span>{{ vente.utilisateur|default:"-" }}</span></div>
+    <div class="line"></div>
+
+    {% for ligne in lignes %}
+    <div class="item">
+        <div class="item-name">{{ ligne.produit.nom }}</div>
+        <div class="item-details">
+            <span>{{ ligne.quantite }} × {{ ligne.prix_unitaire|floatformat:2 }}</span>
+            <strong>{{ ligne.total|floatformat:2 }}</strong>
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="line"></div>
+    <div class="row total"><span>TOTAL</span><span>{{ total|floatformat:2 }}</span></div>
+    <div class="line"></div>
+    <div class="center">Merci pour votre achat !</div>
+    <div class="center">{{ site.nom }}</div>
+</body>
+</html>

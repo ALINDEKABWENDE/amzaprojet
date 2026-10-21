@@ -1,0 +1,111 @@
+<article class="admin-report-document">
+    <header class="admin-report-document-header">
+        <div>
+            <div class="admin-report-document-brand">Gestion Stock</div>
+            <div class="admin-report-document-meta">
+                {% if site_selectionne %}
+                    {{ site_selectionne.nom }} · {{ site_selectionne.get_type_site_display }}
+                    {% if site_selectionne.ville %} · {{ site_selectionne.ville }}{% endif %}
+                {% else %}
+                    Rapport consolidé · {{ sites|length }} sites
+                {% endif %}
+            </div>
+        </div>
+        <div class="admin-report-document-title">
+            {% if type_rapport == "caisse" %}LIVRE DE CAISSE{% else %}GRAND LIVRE DE STOCK{% endif %}
+            <small>Généré le {{ date_generation|date:"d/m/Y à H:i" }}</small>
+        </div>
+    </header>
+
+    <div class="admin-report-summary">
+        <div class="admin-report-metric">
+            <span class="admin-report-metric-label">Périmètre</span>
+            <span class="admin-report-metric-value">
+                {% if site_selectionne %}{{ site_selectionne.nom }}{% else %}Tous les sites{% endif %}
+            </span>
+            <div class="admin-report-metric-note">
+                {% if debut %}Du {{ debut|date:"d/m/Y" }}{% else %}Depuis le début{% endif %}
+                {% if fin %} au {{ fin|date:"d/m/Y" }}{% else %} jusqu’à aujourd’hui{% endif %}
+            </div>
+        </div>
+        <div class="admin-report-metric">
+            <span class="admin-report-metric-label">Nombre de lignes</span>
+            <span class="admin-report-metric-value">{{ nombre_lignes }}</span>
+            <div class="admin-report-metric-note">
+                {% if type_rapport == "caisse" %}Transactions enregistrées{% else %}Mouvements enregistrés{% endif %}
+            </div>
+        </div>
+        {% if type_rapport == "caisse" %}
+            {% for devise, total in totaux.items %}
+                <div class="admin-report-metric">
+                    <span class="admin-report-metric-label">Totaux en {{ devise }}</span>
+                    <span class="admin-report-metric-value">{{ total.benefice|floatformat:2 }} {{ devise }}</span>
+                    <div class="admin-report-metric-note">
+                        Frais · Dépôts {{ total.depots|floatformat:2 }} · Retraits {{ total.retraits|floatformat:2 }}
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="admin-report-metric">
+                <span class="admin-report-metric-label">Quantité nette</span>
+                <span class="admin-report-metric-value">{{ totaux.quantite }}</span>
+                <div class="admin-report-metric-note">Quantité cumulée selon les mouvements</div>
+            </div>
+            <div class="admin-report-metric">
+                <span class="admin-report-metric-label">Valeur nette</span>
+                <span class="admin-report-metric-value">{{ totaux.valeur|floatformat:2 }}</span>
+                <div class="admin-report-metric-note">Calculée à partir des mouvements</div>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if type_rapport == "caisse" %}
+        <div class="admin-report-table-wrap">
+            <table class="table admin-report-table">
+                <thead><tr><th>Date</th><th>Site</th><th>Agent</th><th>Opérateur</th><th>Type</th><th>Client</th><th>Montant</th><th>Frais</th></tr></thead>
+                <tbody>
+                {% for ligne in lignes %}
+                    <tr>
+                        <td>{{ ligne.date_transaction|date:"d/m/Y H:i" }}</td>
+                        <td class="admin-report-site">{{ ligne.site.nom }}</td>
+                        <td>{{ ligne.agent|default:"—" }}</td>
+                        <td>{{ ligne.operateur_affiche }}</td>
+                        <td><span class="admin-report-badge {% if ligne.type_transaction == 'retrait' %}stock{% endif %}">{{ ligne.get_type_transaction_display }}</span></td>
+                        <td>{{ ligne.client_nom }}</td>
+                        <td><strong>{{ ligne.montant|floatformat:2 }}</strong> {{ ligne.devise }}</td>
+                        <td>{{ ligne.frais|floatformat:2 }} {{ ligne.devise }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="8" class="admin-report-empty"><i class="bi bi-inbox"></i>Aucune transaction pour cette sélection.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="admin-report-table-wrap">
+            <table class="table admin-report-table">
+                <thead><tr><th>Date</th><th>Site</th><th>Produit</th><th>Type</th><th>Quantité</th><th>Prix unitaire</th><th>Valeur</th><th>Utilisateur</th><th>Note</th></tr></thead>
+                <tbody>
+                {% for ligne in lignes %}
+                    <tr>
+                        <td>{{ ligne.date_mouvement|date:"d/m/Y H:i" }}</td>
+                        <td class="admin-report-site">{{ ligne.produit.site.nom }}</td>
+                        <td>{{ ligne.produit.nom }}</td>
+                        <td><span class="admin-report-badge {% if ligne.type_mouvement == 'sortie' %}stock{% endif %}">{{ ligne.get_type_mouvement_display }}</span></td>
+                        <td>{{ ligne.quantite }}</td>
+                        <td>{{ ligne.prix_unitaire|floatformat:2 }}</td>
+                        <td>{{ ligne.valeur_ligne|floatformat:2 }}</td>
+                        <td>{{ ligne.utilisateur|default:"—" }}</td>
+                        <td>{{ ligne.note|default:"—" }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="9" class="admin-report-empty"><i class="bi bi-inbox"></i>Aucun mouvement pour cette sélection.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+    <footer class="admin-report-document-footer">
+        Rapport administratif · Gestion Stock · {% if site_selectionne %}{{ site_selectionne.nom }}{% else %}Tous les sites{% endif %}
+    </footer>
+</article>
